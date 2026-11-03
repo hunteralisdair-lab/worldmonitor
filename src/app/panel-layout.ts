@@ -2511,6 +2511,9 @@ export class PanelLayoutManager implements AppModule {
     this.lazyPanel('uk-polls', () =>
       this.importPanel('uk-polls', () => import('@/components/UkPollsPanel'), 'UkPollsPanel', (UkPollsPanel) => new UkPollsPanel()),
     );
+    this.lazyPanel('parliament-agenda', () =>
+      this.importPanel('parliament-agenda', () => import('@/components/ParliamentAgendaPanel'), 'ParliamentAgendaPanel', (ParliamentAgendaPanel) => new ParliamentAgendaPanel()),
+    );
 
     this.lazyImportedPanel('live-news', () => import('@/components/LiveNewsPanel'), 'LiveNewsPanel', (LiveNewsPanel, module) => {
       const liveNewsModule = module as typeof import('@/components/LiveNewsPanel');

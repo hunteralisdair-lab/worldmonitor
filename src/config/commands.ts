@@ -213,6 +213,7 @@ export const COMMANDS: Command[] = [
   { id: 'panel:social', keywords: ['society', 'social affairs', 'health education', 'social news'], label: 'Panel: Society', icon: '\u{1F465}', category: 'panels' },
   { id: 'panel:westminster', keywords: ['westminster seats', 'seat count', 'party seats', 'commons composition'], label: 'Panel: Westminster Seats', icon: '\u{1F3DB}', category: 'panels' },
   { id: 'panel:commons-votes', keywords: ['commons divisions', 'commons votes', 'parliament votes', 'division results'], label: 'Panel: Commons Divisions', icon: '\u{1F5F3}', category: 'panels' },
+  { id: 'panel:parliament-agenda', keywords: ['parliament agenda', 'debates this week', 'parliamentary calendar', 'chamber business'], label: 'Panel: Parliament This Week', icon: '\u{1F4C5}', category: 'panels' },
   { id: 'panel:uk-polls', keywords: ['uk polls', 'poll tracker', 'voting intention', 'opinion polls'], label: 'Panel: UK Poll Tracker', icon: '\u{1F4CA}', category: 'panels' },
   { id: 'panel:uk-gov', keywords: ['uk government', 'downing street', 'whitehall', 'gov uk'], label: 'Panel: UK Government', icon: '\u{1F3E2}', category: 'panels' },
   { id: 'panel:uk-thinktanks', keywords: ['uk think tanks', 'ifs', 'chatham house', 'policy research'], label: 'Panel: UK Think Tanks', icon: '\u{1F4DA}', category: 'panels' },

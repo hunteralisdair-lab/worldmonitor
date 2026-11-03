@@ -97,7 +97,11 @@ export type SignalType =
   | 'explained_market_move'
   | 'hotspot_escalation'
   | 'sector_cascade'
-  | 'military_surge';
+  | 'military_surge'
+  // UK political findings (politics variant, src/services/uk-political-signals.ts)
+  | 'petition_surge'
+  | 'division_upset'
+  | 'poll_shift';
 
 /**
  * One article a signal was built from. `correlatedNews` looks like this but is

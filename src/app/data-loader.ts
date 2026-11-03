@@ -493,6 +493,14 @@ export class DataLoaderManager implements AppModule {
         workList: this.resolveEnabledNewsCategories().map(c => `${c.key}${c.isCustom ? ':custom' : ''}`),
       });
     }
+    // UK political findings feed the Intelligence Findings badge (petition
+    // surges, Commons division upsets, poll shifts). Lazy so the service and
+    // its APIs stay off every other variant's critical path.
+    if (SITE_VARIANT === 'politics' && typeof window !== 'undefined') {
+      void import('@/services/uk-political-signals')
+        .then(m => m.startUkPoliticalSignals())
+        .catch(err => console.warn('[UKSignals] init failed:', err));
+    }
   }
 
   private getHydrationTier(name: string): HydrationTier {

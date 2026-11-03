@@ -444,7 +444,13 @@ export class IntelligenceFindingsBadge {
 
   private getInsight(finding: UnifiedFinding): string {
     if (finding.source === 'signal') {
-      const context = getSignalContext((finding.original as CorrelationSignal).type);
+      const signal = finding.original as CorrelationSignal;
+      // UK political findings carry their own insights (same pattern as the
+      // radiation alert below) — they are fork-local and not in SIGNAL_CONTEXT.
+      if (signal.type === 'petition_surge') return 'Public-pressure signal: check which side of politics is amplifying it';
+      if (signal.type === 'division_upset') return 'Check the division detail for rebellions and the government response';
+      if (signal.type === 'poll_shift') return 'Cross-check the UK Poll Tracker panel for the trend behind the move';
+      const context = getSignalContext(signal.type);
       return (context.actionableInsight ?? '').split('.')[0] || '';
     }
     // For alerts, provide actionable insight based on type and severity
@@ -478,6 +484,10 @@ export class IntelligenceFindingsBadge {
       triangulation: '🔺',
       flow_drop: '⬇️',
       sector_cascade: '🌊',
+      // UK political findings (politics variant)
+      petition_surge: '✍️',
+      division_upset: '🗳️',
+      poll_shift: '📊',
       // Unified alerts
       cii_spike: '🔴',
       cascade: '⚡',

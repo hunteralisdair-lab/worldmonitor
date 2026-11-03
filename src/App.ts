@@ -2129,6 +2129,21 @@ export class App {
     // Phase 2: Shared UI components
     if (!this.state.isMobile) {
       void this.initFindingsBadge();
+    } else {
+      // Booted at mobile width: the badge never mounted, but the responsive
+      // layout can become desktop on resize (.header-right appears). Mount
+      // the badge the first time that happens instead of requiring a reload.
+      const mountOnDesktopResize = () => {
+        if (this.state.isDestroyed || this.state.findingsBadge) {
+          window.removeEventListener('resize', mountOnDesktopResize);
+          return;
+        }
+        if (window.innerWidth > 768 && document.querySelector('.header-right')) {
+          window.removeEventListener('resize', mountOnDesktopResize);
+          void this.initFindingsBadge();
+        }
+      };
+      window.addEventListener('resize', mountOnDesktopResize);
     }
 
     initBreakingNewsAlerts();

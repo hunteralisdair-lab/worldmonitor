@@ -1137,6 +1137,7 @@ const POLITICS_PANELS: Record<string, PanelConfig> = {
   'uk-politics': { name: 'UK Politics', enabled: true, priority: 1 },
   westminster: { name: 'Westminster Seats', enabled: true, priority: 1 },
   'commons-votes': { name: 'Commons Divisions', enabled: true, priority: 1 },
+  'parliament-agenda': { name: 'Parliament This Week', enabled: true, priority: 1 },
   'uk-polls': { name: 'UK Poll Tracker', enabled: true, priority: 1 },
   'uk-gov': { name: 'UK Government', enabled: true, priority: 1 },
   'uk-thinktanks': { name: 'UK Think Tanks', enabled: true, priority: 1 },
@@ -1665,7 +1666,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   polPolitics: {
     labelKey: 'header.panelCatPolPolitics',
-    panelKeys: ['uk-politics', 'westminster', 'commons-votes', 'uk-polls', 'uk-gov', 'uk-thinktanks', 'polymarket', 'cii', 'strategic-risk', 'ucdp-events', 'displacement'],
+    panelKeys: ['uk-politics', 'westminster', 'commons-votes', 'parliament-agenda', 'uk-polls', 'uk-gov', 'uk-thinktanks', 'polymarket', 'cii', 'strategic-risk', 'ucdp-events', 'displacement'],
     variants: ['politics'],
   },
 
