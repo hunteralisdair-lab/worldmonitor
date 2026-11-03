@@ -31,10 +31,12 @@
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, basename } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import ts from 'typescript';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+// fileURLToPath, not .pathname: the latter is "/C:/Users/…" on Windows, which
+// join() turns into a doubled-drive path that no module resolver can load.
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PREMIUM_PATHS_SRC = join(ROOT, 'src/shared/premium-paths.ts');
 const GEN_CLIENT_DIR = join(ROOT, 'src/generated/client');
 const SRC_DIR = join(ROOT, 'src');
