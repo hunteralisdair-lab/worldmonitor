@@ -1121,7 +1121,8 @@ const POLITICS_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Global Politics Map', enabled: true, priority: 1 },
   'live-news': { name: 'Politics Headlines', enabled: true, priority: 1 },
   insights: { name: 'AI Political Insights', enabled: true, priority: 1 },
-  'latest-brief': { name: 'Latest Brief', enabled: true, priority: 1, premium: 'locked' as const },
+  // No 'latest-brief': it is tied to a Clerk account server-side (per-user
+  // brief), so it can never render content in the open-access fork.
   // News
   politics: { name: 'World News', enabled: true, priority: 1 },
   us: { name: 'United States', enabled: true, priority: 1 },
