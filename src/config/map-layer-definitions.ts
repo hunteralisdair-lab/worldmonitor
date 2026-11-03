@@ -3,7 +3,7 @@ import type { MapLayers } from '@/types';
 import { isDesktopRuntime } from '@/services/runtime';
 
 export type MapRenderer = 'flat' | 'globe';
-export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity' | 'energy';
+export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity' | 'energy' | 'politics';
 
 const _desktop = isDesktopRuntime();
 
@@ -89,6 +89,9 @@ export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
   // DeckGLMap owns the resilience choropleth; Map.ts/MapContainer strip it
   // on SVG/mobile fallback.
   resilienceScore:          def('resilienceScore',          '&#128200;', 'resilienceScore',          'Resilience', ['flat'], 'locked', true),
+  // DeckGL-only like resilienceScore: UK constituency choropleth by current
+  // party control (politics variant).
+  politicalControl:         def('politicalControl',         '&#127963;', 'politicalControl',         'UK Political Control', ['flat'], undefined, true),
   dayNight:                 def('dayNight',                 '&#127763;', 'dayNight',                 'Day/Night', ['flat']),
   sanctions:                def('sanctions',                '&#128683;', 'sanctions',                'Sanctions', ['flat']),
   startupHubs:              def('startupHubs',              '&#128640;', 'startupHubs',              'Startup Hubs'),
@@ -345,6 +348,20 @@ const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
     // Energy-adjacent context
     'sanctions', 'fires', 'climate', 'weather', 'outages', 'natural',
     'resilienceScore', 'dayNight',
+  ],
+  politics: [
+    // Politics-first ordering: political control on top, then the full
+    // variant's geopolitical layers (POLITICS_MAP_LAYERS copies FULL's).
+    'politicalControl',
+    'hotspots', 'conflicts',
+    'bases', 'nuclear', 'irradiators', 'radiationWatch', 'spaceports',
+    'cables', 'pipelines', 'storageFacilities', 'fuelShortages', 'datacenters', 'military',
+    'ais', 'tradeRoutes', 'flights', 'protests',
+    'ucdpEvents', 'displacement', 'climate', 'weather',
+    'outages', 'cyberThreats', 'natural', 'fires',
+    'waterways', 'economic', 'minerals', 'gpsJamming',
+    'satellites', 'ciiChoropleth', 'resilienceScore', 'sanctions', 'dayNight', 'webcams',
+    'diseaseOutbreaks',
   ],
 };
 

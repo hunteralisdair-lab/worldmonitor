@@ -735,6 +735,10 @@ export interface MapLayers {
   /** Live tanker positions (AIS ship type 80-89) inside chokepoint bboxes.
    *  Refreshed every 60s via getVesselSnapshot. Energy Atlas parity-push. */
   liveTankers?: boolean;
+  // Politics variant layer (optional, same reasoning as the energy keys).
+  /** UK constituency choropleth colored by current party control
+   *  (static dataset from scripts/fetch-uk-political-control.mjs). */
+  politicalControl?: boolean;
 }
 
 export interface AIDataCenter {

@@ -158,6 +158,7 @@ import type { HappinessData } from '@/services/happiness-data';
 import type { RenewableInstallation } from '@/services/renewable-installations';
 import type { SpeciesRecovery } from '@/services/conservation-data';
 import { getCountriesGeoJson, getCountryAtCoordinates, getCountryBbox, getCountryCentroid } from '@/services/country-geometry';
+import { ukPartyHex, ukPartyRgba } from '@/config/uk-party-colors';
 import type { DiseaseOutbreakItem } from '@/services/disease-outbreaks';
 import type { FeatureCollection, Geometry } from 'geojson';
 import type { ResilienceRankingItem } from '@/services/resilience';
@@ -662,6 +663,11 @@ export class DeckGLMap {
   private countriesBounded: BoundedFeature[] | null = null;
   private culledCountriesGeoJson: GeoJSON.FeatureCollection | null = null;
   private culledCountriesContentKey = '';
+
+  // UK political-control choropleth (politics variant): static dataset from
+  // scripts/fetch-uk-political-control.mjs, fetched lazily on first toggle.
+  private politicalControlData: GeoJSON.FeatureCollection | null = null;
+  private politicalControlLoadState: 'idle' | 'loading' | 'failed' = 'idle';
 
   // CII choropleth data
   private ciiScoresMap: Map<string, { score: number; level: string }> = new Map();
@@ -2222,6 +2228,12 @@ export class DeckGLMap {
     if (mapLayers.happiness) {
       const choropleth = this.createHappinessChoroplethLayer();
       if (choropleth) layers.push(choropleth);
+    }
+    // UK political control choropleth (politics variant)
+    if (mapLayers.politicalControl) {
+      const pcLayer = this.createPoliticalControlLayer();
+      if (pcLayer) layers.push(pcLayer);
+      else this.ensurePoliticalControlData();
     }
     // CII choropleth (country instability heat-map)
     if (mapLayers.ciiChoropleth) {
@@ -4552,6 +4564,45 @@ export class DeckGLMap {
     });
   }
 
+  /** Lazy one-shot fetch of the static UK political-control dataset. */
+  private ensurePoliticalControlData(): void {
+    if (this.politicalControlLoadState !== 'idle') return;
+    this.politicalControlLoadState = 'loading';
+    fetch('/data/uk-political-control.json')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<GeoJSON.FeatureCollection>;
+      })
+      .then((geojson) => {
+        this.politicalControlData = geojson;
+        this.render();
+      })
+      .catch((err) => {
+        this.politicalControlLoadState = 'failed';
+        console.warn('[DeckGLMap] political-control dataset failed to load:', err);
+      });
+  }
+
+  private createPoliticalControlLayer(): GeoJsonLayer | null {
+    if (!this.politicalControlData) return null;
+    return new GeoJsonLayer({
+      id: 'political-control-layer',
+      data: this.politicalControlData,
+      filled: true,
+      stroked: true,
+      getFillColor: (feature: { properties?: Record<string, unknown> }) => {
+        const party = typeof feature.properties?.party === 'string' ? feature.properties.party : 'Unknown';
+        const apiColor = typeof feature.properties?.partyColor === 'string' ? feature.properties.partyColor : null;
+        return ukPartyRgba(party, apiColor);
+      },
+      // Dark umber hairlines so adjacent same-party constituencies stay legible.
+      getLineColor: [22, 17, 12, 200] as [number, number, number, number],
+      getLineWidth: 1,
+      lineWidthMinPixels: 0.5,
+      pickable: true,
+    });
+  }
+
   private static readonly CII_LEVEL_HEX: Record<string, string> = {
     critical: '#b91c1c', high: '#dc2626', elevated: '#f59e0b', normal: '#eab308', low: '#22c55e',
   };
@@ -5039,6 +5090,30 @@ export class DeckGLMap {
 
     const rawClickLayerId = info.layer?.id || '';
     const layerId = rawClickLayerId.endsWith('-ghost') ? rawClickLayerId.slice(0, -6) : rawClickLayerId;
+
+    // UK constituency: party control + any headlines matching it or its MP
+    if (layerId === 'political-control-layer') {
+      const props = (info.object as { properties?: Record<string, unknown> })?.properties ?? {};
+      const name = typeof props.name === 'string' ? props.name : '';
+      const party = typeof props.party === 'string' ? props.party : 'Unknown';
+      const mp = typeof props.mp === 'string' ? props.mp : null;
+      if (!name) return;
+      this.popup.show({
+        type: 'constituency',
+        data: {
+          code: typeof props.code === 'string' ? props.code : '',
+          name,
+          party,
+          partyAbbr: typeof props.partyAbbr === 'string' ? props.partyAbbr : null,
+          mp,
+          partyHex: ukPartyHex(party, typeof props.partyColor === 'string' ? props.partyColor : null),
+          stories: this.matchConstituencyNews(name, mp),
+        },
+        x: info.x,
+        y: info.y,
+      });
+      return;
+    }
 
     // Hotspots show popup with related news
     if (layerId === 'hotspots-layer') {
@@ -7153,6 +7228,24 @@ export class DeckGLMap {
   public setRenewableInstallations(installations: RenewableInstallation[]): void {
     this.renewableInstallations = installations;
     this.render();
+  }
+
+  /**
+   * Regional-stories v1: headlines already on the map whose title mentions
+   * the constituency or its MP by full name. Deliberately strict — surname
+   * alone would false-positive on common names.
+   */
+  private matchConstituencyNews(constituency: string, mp: string | null): NewsItem[] {
+    const needles = [constituency, mp]
+      .filter((s): s is string => typeof s === 'string' && s.length > 3)
+      .map((s) => s.toLowerCase());
+    if (needles.length === 0) return [];
+    return this.news
+      .filter((n) => {
+        const title = n.title.toLowerCase();
+        return needles.some((needle) => title.includes(needle));
+      })
+      .slice(0, 5);
   }
 
   public updateHotspotActivity(news: NewsItem[]): void {

@@ -1155,7 +1155,7 @@ const POLITICS_PANELS: Record<string, PanelConfig> = {
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
 };
 
-const POLITICS_MAP_LAYERS: MapLayers = { ...FULL_MAP_LAYERS };
+const POLITICS_MAP_LAYERS: MapLayers = { ...FULL_MAP_LAYERS, politicalControl: true };
 const POLITICS_MOBILE_MAP_LAYERS: MapLayers = { ...FULL_MOBILE_MAP_LAYERS };
 
 // ============================================
