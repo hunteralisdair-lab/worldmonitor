@@ -104,6 +104,33 @@ const SOURCE_BIAS: Record<string, SourceBias> = {
 };
 
 /**
+ * Outlet-family fallback: a section feed we didn't enumerate ("Guardian
+ * Americas", "BBC Latin America", "Reuters LatAm", "CNBC Markets") still
+ * carries its masthead's rating. Checked only after the exact map misses.
+ * "The Times" is deliberately NOT here: "The Times of Central Asia",
+ * "Moscow Times" and "Military Times" are unrelated outlets, so The Times
+ * resolves through its exact entries alone.
+ */
+const OUTLET_PREFIX_BIAS: ReadonlyArray<readonly [string, SourceBias]> = [
+  ['bbc ', 'center'],
+  ['reuters ', 'center'],
+  ['sky news', 'center'],
+  ['politico', 'center'],
+  ['cnbc', 'center'],
+  ['ft ', 'center'],
+  ['marketwatch', 'center'],
+  ['guardian ', 'center-left'],
+  ['the guardian', 'center-left'],
+  ['independent ', 'center-left'],
+  ['npr ', 'center-left'],
+  ['cnn ', 'center-left'],
+  ['telegraph ', 'center-right'],
+  ['spectator', 'right'],
+  ['daily mail', 'right'],
+  ['fox news', 'right'],
+];
+
+/**
  * Normalize a source name as it appears on a news item into a lookup key:
  * lowercase, trimmed, with aggregator suffixes ("Outlet - Google News",
  * "Outlet | Google News") stripped.
@@ -122,5 +149,11 @@ function normalizeSourceName(name: string): string {
  */
 export function getSourceBias(sourceName: string): SourceBias | undefined {
   if (!sourceName) return undefined;
-  return SOURCE_BIAS[normalizeSourceName(sourceName)];
+  const normalized = normalizeSourceName(sourceName);
+  const exact = SOURCE_BIAS[normalized];
+  if (exact) return exact;
+  for (const [prefix, bias] of OUTLET_PREFIX_BIAS) {
+    if (normalized.startsWith(prefix)) return bias;
+  }
+  return undefined;
 }
