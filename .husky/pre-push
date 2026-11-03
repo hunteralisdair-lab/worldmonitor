@@ -676,7 +676,10 @@ if [ "$RUN_ALL" = true ] || path_matches '^(pro-test|public/pro)/|^convex/config
   # api/_product-fallback-prices.js and left it listed here, which blocked every
   # push touching pro-test/ or public/pro/ until it was noticed. Keep this list
   # in step with what scripts/generate-product-config.mjs actually writes.
-  if ! git diff --exit-code src/config/products.generated.ts src/config/product-ids.generated.ts pro-test/src/generated/tiers.json pro-test/src/locales/ public/pro/; then
+  # --ignore-cr-at-eol: on a Windows (autocrlf) checkout the rebuild emits LF
+  # where the committed HTML carries CRLF, which read as every line changed and
+  # blocked every push through this gate. Real content drift still fails.
+  if ! git diff --ignore-cr-at-eol --exit-code src/config/products.generated.ts src/config/product-ids.generated.ts pro-test/src/generated/tiers.json pro-test/src/locales/ public/pro/; then
     echo ""
     echo "============================================================"
     echo "ERROR: product catalog, generated config, pro locales, or public/pro/ is stale."

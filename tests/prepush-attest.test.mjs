@@ -115,7 +115,10 @@ describe('changed-path enumeration survives every legal git path', () => {
     'tests/with space.test.mjs': 'x\n',
   };
 
-  test('the unicode/backslash/space paths a plain --name-only read loses', () => {
+  // NTFS cannot create filenames containing backslashes or newlines, so the
+  // hostile-path fixtures below are POSIX-only. The attestation plumbing they
+  // exercise is covered by the remaining tests on Windows checkouts.
+  test('the unicode/backslash/space paths a plain --name-only read loses', { skip: process.platform === 'win32' }, () => {
     const root = makeRepo({ branchFiles: HOSTILE });
 
     // The old plumbing, reproduced: line-read `git diff --name-only`, then
@@ -133,7 +136,7 @@ describe('changed-path enumeration survives every legal git path', () => {
     assert.deepEqual(paths.sort(), Object.keys(HOSTILE).sort(), 'every legal path must survive');
   });
 
-  test('a path containing a newline stays one path', () => {
+  test('a path containing a newline stays one path', { skip: process.platform === 'win32' }, () => {
     // The reason this is NUL-delimited rather than `core.quotePath=false`: a
     // line-oriented reader splits this path into two nonexistent ones.
     const root = makeRepo({ branchFiles: { 'tests/two\nlines.test.mjs': 'x\n' } });

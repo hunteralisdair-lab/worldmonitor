@@ -31,7 +31,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SCRIPT = join(REPO_ROOT, 'scripts', 'prepush-changed-tests.sh');
@@ -184,7 +184,10 @@ describe('pre-push changed-test partition', () => {
     }
   });
 
-  test('a path containing a newline stays one path', () => {
+  // NTFS cannot create a filename containing a newline, so this fixture is
+  // POSIX-only; the NUL-delimited plumbing it exercises still runs on Windows
+  // through the other partition tests.
+  test('a path containing a newline stays one path', { skip: process.platform === 'win32' }, () => {
     // The reason the list is NUL-delimited: a line reader would split this
     // into two entries, neither of which exists, and the old code would have
     // silently dropped both.
@@ -224,13 +227,21 @@ describe('partition stays in step with the vitest DOM project', () => {
     const probe = join(fixtureDir('wm-dom-config-probe-'), 'probe.mts');
     writeFileSync(
       probe,
-      `const m = await import(${JSON.stringify(join(REPO_ROOT, 'vitest.dom.config.mts'))});\n` +
+      // file URL, not a bare path: Windows absolute paths are rejected by the
+      // ESM loader ("protocol 'c:'").
+      `const m = await import(${JSON.stringify(pathToFileURL(join(REPO_ROOT, 'vitest.dom.config.mts')).href)});\n` +
         'console.log(JSON.stringify(m.default?.test?.include ?? null));\n',
     );
-    const out = execFileSync(join(REPO_ROOT, 'node_modules', '.bin', 'tsx'), [probe], {
-      cwd: REPO_ROOT,
-      encoding: 'utf8',
-    });
+    // Invoke tsx's JS entry through the current node binary: the .bin shim is
+    // a POSIX symlink that spawnSync cannot execute on Windows (ENOENT).
+    const out = execFileSync(
+      process.execPath,
+      [join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs'), probe],
+      {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+      },
+    );
     return JSON.parse(out.trim().split('\n').at(-1));
   })();
 

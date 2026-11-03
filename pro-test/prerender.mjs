@@ -244,6 +244,12 @@ for (const { file, content, rootAttributes } of PAGES) {
     console.error(`[prerender] ERROR: ${file} has no #root mount point.`);
     process.exit(1);
   }
+  // Strip CRs so the committed bytes are identical no matter where the build
+  // ran: on a Windows (autocrlf) checkout the HTML template arrives with CRLF
+  // endings and the LF-joined injections above produce mixed/\r\r\n output,
+  // which the pre-push freshness diff reads as a stale bundle. Dropping every
+  // CR (not CRLF→LF) keeps doubled CRs from leaving extra blank lines.
+  html = html.replace(/\r/g, '');
   writeFileSync(htmlPath, html, 'utf-8');
   console.log(`[prerender] Injected critical CSS and visible content into public/pro/${file}`);
 }
