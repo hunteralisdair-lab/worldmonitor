@@ -241,6 +241,12 @@ export function adviceFor(label) {
   return 'render through Panel.setContentNodes() / setTrustedContent() / setSafeContent()';
 }
 
+/** Repo-relative path with POSIX separators, so the inventory's forward-slash
+ *  entries match on Windows checkouts too (path.relative emits backslashes there). */
+function relPosix(root, abs) {
+  return path.relative(root, abs).split(path.sep).join('/');
+}
+
 function collectTsFiles(dir) {
   const out = [];
   for (const entry of readdirSync(dir)) {
@@ -266,7 +272,7 @@ export function scanRepo(root = REPO_ROOT) {
 
   const subclassFiles = allFiles.filter(
     (abs) =>
-      !GUARD_EXEMPT_FILES.has(path.relative(root, abs)) &&
+      !GUARD_EXEMPT_FILES.has(relPosix(root, abs)) &&
       [...collectClassBases(codeByFile.get(abs) ?? '').keys()].some((name) =>
         derivesFromPanel(name, baseOf),
       ),
@@ -275,7 +281,7 @@ export function scanRepo(root = REPO_ROOT) {
   const observed = subclassFiles
     .flatMap((abs) =>
       directWritesIn(codeByFile.get(abs) ?? '').map(
-        (label) => `${path.relative(root, abs)} :: ${label}`,
+        (label) => `${relPosix(root, abs)} :: ${label}`,
       ),
     )
     .sort();

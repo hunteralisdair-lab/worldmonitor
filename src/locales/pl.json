@@ -2642,6 +2642,21 @@
       "rubBase": "Bank Rosji — ruble za 1 jednostkę",
       "rubPerUnit": "Rubli za jednostkę",
       "sourceCbr": "Źródło: Bank Rosji"
+    },
+    "perspective": {
+      "lensLabel": "Perspective lens",
+      "balanced": "Balanced",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "bias": {
+        "left": "Source leans left",
+        "centerLeft": "Source leans center-left",
+        "center": "Source rated center",
+        "centerRight": "Source leans center-right",
+        "right": "Source leans right",
+        "unrated": "Source not yet rated"
+      }
     }
   },
   "popups": {

@@ -2642,6 +2642,21 @@
       "rubBase": "Ruská centrální banka — rubly za 1 jednotku",
       "rubPerUnit": "Rublů za jednotku",
       "sourceCbr": "Zdroj: Ruská centrální banka"
+    },
+    "perspective": {
+      "lensLabel": "Perspective lens",
+      "balanced": "Balanced",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "bias": {
+        "left": "Source leans left",
+        "centerLeft": "Source leans center-left",
+        "center": "Source rated center",
+        "centerRight": "Source leans center-right",
+        "right": "Source leans right",
+        "unrated": "Source not yet rated"
+      }
     }
   },
   "popups": {

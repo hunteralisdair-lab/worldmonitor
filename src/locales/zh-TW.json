@@ -2606,6 +2606,21 @@
       "rubBase": "俄羅斯央行 — 每 1 單位盧布",
       "rubPerUnit": "每單位盧布",
       "sourceCbr": "來源：俄羅斯央行"
+    },
+    "perspective": {
+      "lensLabel": "Perspective lens",
+      "balanced": "Balanced",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "bias": {
+        "left": "Source leans left",
+        "centerLeft": "Source leans center-left",
+        "center": "Source rated center",
+        "centerRight": "Source leans center-right",
+        "right": "Source leans right",
+        "unrated": "Source not yet rated"
+      }
     }
   },
   "popups": {

@@ -2685,6 +2685,21 @@
       "rubBase": "Bank of Russia — RUB per 1 unit",
       "rubPerUnit": "RUB per unit",
       "sourceCbr": "Source: Bank of Russia"
+    },
+    "perspective": {
+      "lensLabel": "Perspective lens",
+      "balanced": "Balanced",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "bias": {
+        "left": "Source leans left",
+        "centerLeft": "Source leans center-left",
+        "center": "Source rated center",
+        "centerRight": "Source leans center-right",
+        "right": "Source leans right",
+        "unrated": "Source not yet rated"
+      }
     }
   },
   "popups": {

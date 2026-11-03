@@ -2624,6 +2624,21 @@
       "rubBase": "Banque de Russie — roubles pour 1 unité",
       "rubPerUnit": "Roubles par unité",
       "sourceCbr": "Source : Banque de Russie"
+    },
+    "perspective": {
+      "lensLabel": "Perspective lens",
+      "balanced": "Balanced",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "bias": {
+        "left": "Source leans left",
+        "centerLeft": "Source leans center-left",
+        "center": "Source rated center",
+        "centerRight": "Source leans center-right",
+        "right": "Source leans right",
+        "unrated": "Source not yet rated"
+      }
     }
   },
   "popups": {

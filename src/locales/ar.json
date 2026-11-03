@@ -2678,6 +2678,21 @@
       "rubBase": "بنك روسيا — روبل لكل وحدة واحدة",
       "rubPerUnit": "روبل لكل وحدة",
       "sourceCbr": "المصدر: بنك روسيا"
+    },
+    "perspective": {
+      "lensLabel": "Perspective lens",
+      "balanced": "Balanced",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "bias": {
+        "left": "Source leans left",
+        "centerLeft": "Source leans center-left",
+        "center": "Source rated center",
+        "centerRight": "Source leans center-right",
+        "right": "Source leans right",
+        "unrated": "Source not yet rated"
+      }
     }
   },
   "popups": {
