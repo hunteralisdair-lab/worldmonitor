@@ -670,6 +670,20 @@ if [ "$RUN_ALL" = true ] || path_matches '^(pro-test|public/pro)/|^convex/config
     echo "ERROR: pro-test build failed"
     exit 1
   }
+  # On a Windows (autocrlf) checkout the build pipes the CRLF-checked-out HTML
+  # template through and emits \r\r\n line endings, which not even
+  # --ignore-cr-at-eol below can forgive. Normalize the built HTML to LF so the
+  # freshness diff compares content; a no-op on LF checkouts.
+  node -e '
+    const fs = require("fs");
+    for (const name of fs.readdirSync("public/pro")) {
+      if (!name.endsWith(".html")) continue;
+      const path = "public/pro/" + name;
+      const text = fs.readFileSync(path, "utf8");
+      const normalized = text.replace(/\r\n?/g, "\n");
+      if (normalized !== text) fs.writeFileSync(path, normalized);
+    }
+  ' || exit 1
   # Paths must all exist: `git diff` exits 128 on an unknown path, which this
   # check cannot tell apart from a real diff, so a generated file that is later
   # deleted silently converts the gate into "always fails". #5672 removed
