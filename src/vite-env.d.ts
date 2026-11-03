@@ -17,6 +17,8 @@ declare const __CLERK_JS_VERSION__: string;
 interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string;
   readonly VITE_WS_API_URL?: string;
+  /** '1' disables client-side premium gating (fork escape hatch, see panel-gating.ts). */
+  readonly VITE_OPEN_ACCESS?: string;
 }
 
 interface ImportMeta {

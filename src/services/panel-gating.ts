@@ -22,6 +22,22 @@ import type { ClientEntitlementBelief } from './premium-denial';
 import { getSecretState } from './runtime-config';
 import { isProUser } from './widget-store';
 
+/**
+ * Fork escape hatch: a build with VITE_OPEN_ACCESS=1 disables client-side
+ * premium gating entirely — every gated surface (premium panels, country
+ * deep-dive sections, map-popup PRO cards) renders as unlocked. Meant for
+ * self-hosted deployments with no billing, where the server side enforces
+ * nothing either (the Vite dev server mounts RPC handlers without the
+ * Vercel gateway's auth). Unset in upstream builds, so gating is unchanged.
+ */
+const OPEN_ACCESS = (() => {
+  try {
+    return import.meta.env.VITE_OPEN_ACCESS === '1';
+  } catch {
+    return false;
+  }
+})();
+
 export enum PanelGateReason {
   NONE = 'none',           // show content (pro user, or desktop with API key, or non-premium panel)
   ANONYMOUS = 'anonymous', // "Sign In to Unlock"
@@ -53,6 +69,7 @@ export enum PanelGateReason {
  * signals that aren't already covered by isProUser.
  */
 export function hasPremiumAccess(authState?: AuthSession): boolean {
+  if (OPEN_ACCESS) return true;
   if (getSecretState('WORLDMONITOR_API_KEY').present) return true;
   if (isProUser()) return true;
   if (authState?.user?.role === 'pro') return true;
