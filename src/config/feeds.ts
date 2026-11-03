@@ -983,6 +983,63 @@ const ENERGY_FEEDS: Record<string, Feed[]> = {
   ],
 };
 
+// Politics variant feeds — politics fork
+// Keys are matched against panel IDs in src/config/panels.ts POLITICS_PANELS.
+// Reused full-variant keys (politics/us/europe/middleeast/africa/asia/crisis/
+// gov/thinktanks) are served by the web digest; the politics-only keys
+// (uk-politics, social, environment, economy) fetch direct on local/desktop.
+const POLITICS_FEEDS: Record<string, Feed[]> = {
+  politics: FULL_FEEDS.politics!,
+  us: FULL_FEEDS.us!,
+  europe: FULL_FEEDS.europe!,
+  middleeast: FULL_FEEDS.middleeast!,
+  africa: FULL_FEEDS.africa!,
+  asia: FULL_FEEDS.asia!,
+  latam: FULL_FEEDS.latam!,
+  crisis: FULL_FEEDS.crisis!,
+  gov: FULL_FEEDS.gov!,
+  thinktanks: FULL_FEEDS.thinktanks!,
+  'uk-politics': [
+    { name: 'BBC Politics',          url: rss('https://feeds.bbci.co.uk/news/politics/rss.xml') },
+    { name: 'Guardian Politics',     url: rss('https://www.theguardian.com/politics/rss') },
+    { name: 'Sky News Politics',     url: rss('https://feeds.skynews.com/feeds/rss/politics.xml') },
+    { name: 'Telegraph Politics',    url: rss('https://www.telegraph.co.uk/politics/rss.xml') },
+    { name: 'Independent Politics',  url: rss('https://www.independent.co.uk/news/uk/politics/rss') },
+    { name: 'Daily Mail News',       url: rss('https://www.dailymail.co.uk/news/index.rss') },
+    { name: 'The Times Politics',    url: rss('https://news.google.com/rss/search?q=site:thetimes.com+politics+when:1d&hl=en-GB&gl=GB&ceid=GB:en') },
+    { name: 'Politico Europe',       url: rss('https://www.politico.eu/feed/') },
+    { name: 'NPR Politics',          url: rss('https://feeds.npr.org/1014/rss.xml') },
+    { name: 'Spectator Politics',    url: rss('https://news.google.com/rss/search?q=site:spectator.co.uk+politics+when:2d&hl=en-GB&gl=GB&ceid=GB:en') },
+    { name: 'New Statesman',         url: rss('https://news.google.com/rss/search?q=site:newstatesman.com+politics+when:2d&hl=en-GB&gl=GB&ceid=GB:en') },
+  ],
+  social: [
+    { name: 'Guardian Society',      url: rss('https://www.theguardian.com/society/rss') },
+    { name: 'Guardian Education',    url: rss('https://www.theguardian.com/education/rss') },
+    { name: 'BBC Health',            url: rss('https://feeds.bbci.co.uk/news/health/rss.xml') },
+    { name: 'BBC Education',         url: rss('https://feeds.bbci.co.uk/news/education/rss.xml') },
+    { name: 'New Yorker',            url: rss('https://www.newyorker.com/feed/news') },
+    { name: 'Independent UK',        url: rss('https://www.independent.co.uk/news/uk/rss') },
+  ],
+  environment: [
+    { name: 'Guardian Environment',  url: rss('https://www.theguardian.com/environment/rss') },
+    { name: 'BBC Science & Environment', url: rss('https://feeds.bbci.co.uk/news/science_and_environment/rss.xml') },
+    { name: 'Carbon Brief',          url: rss('https://www.carbonbrief.org/feed/') },
+    { name: 'Grist',                 url: rss('https://grist.org/feed/') },
+    { name: 'Inside Climate News',   url: rss('https://insideclimatenews.org/feed/') },
+    { name: 'Climate Home News',     url: rss('https://www.climatechangenews.com/feed/') },
+    { name: 'Mongabay',              url: rss('https://news.mongabay.com/feed/') },
+    { name: 'Yale E360',             url: rss('https://e360.yale.edu/feed.xml') },
+  ],
+  'econ-news': [
+    { name: 'BBC Business',          url: rss('https://feeds.bbci.co.uk/news/business/rss.xml') },
+    { name: 'Guardian Economics',    url: rss('https://www.theguardian.com/business/economics/rss') },
+    { name: 'CNBC Economy',          url: rss('https://news.google.com/rss/search?q=site:cnbc.com+economy+when:1d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'Economist',             url: rss('https://news.google.com/rss/search?q=site:economist.com+when:2d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'FT Economics',          url: rss('https://news.google.com/rss/search?q=site:ft.com+(economy+OR+inflation+OR+"central+bank"+OR+GDP)+when:1d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'MarketWatch',           url: rss('https://news.google.com/rss/search?q=site:marketwatch.com+economy+when:1d&hl=en-US&gl=US&ceid=US:en') },
+  ],
+};
+
 // Variant-aware exports
 export const FEEDS = SITE_VARIANT === 'tech'
   ? TECH_FEEDS
@@ -994,7 +1051,9 @@ export const FEEDS = SITE_VARIANT === 'tech'
         ? COMMODITY_FEEDS
         : SITE_VARIANT === 'energy'
           ? ENERGY_FEEDS
-          : FULL_FEEDS;
+          : SITE_VARIANT === 'politics'
+            ? POLITICS_FEEDS
+            : FULL_FEEDS;
 
 // Canonical category→feeds map: the union of every variant's feed set.
 // `FEEDS` (above) is just the active variant's PRESET; users freely customize
@@ -1010,6 +1069,7 @@ export const CANONICAL_FEEDS: Record<string, Feed[]> = mergeCanonicalFeeds([
   COMMODITY_FEEDS,
   ENERGY_FEEDS,
   HAPPY_FEEDS,
+  POLITICS_FEEDS,
 ]);
 
 export const SOURCE_REGION_MAP: Record<string, { labelKey: string; feedKeys: string[] }> = {

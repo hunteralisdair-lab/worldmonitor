@@ -1,5 +1,6 @@
 import { isDesktopRuntime } from './runtime';
 import { invokeTauri } from './tauri-bridge';
+import { SITE_VARIANT } from '@/config/variant';
 
 export type RuntimeSecretKey =
   | 'GROQ_API_KEY'
@@ -103,7 +104,10 @@ const defaultToggles: Record<RuntimeFeatureId, boolean> = {
   aiOllama: true,
   wtoTrade: true,
   supplyChain: true,
-  newsPerFeedFallback: false,
+  // Politics fork: the politics-only news categories (uk-politics, social,
+  // environment, econ-news) are absent from the server digest, so browser
+  // sessions need the direct per-feed path for them.
+  newsPerFeedFallback: SITE_VARIANT === 'politics',
   aviationStack: true,
   icaoNotams: true,
 };

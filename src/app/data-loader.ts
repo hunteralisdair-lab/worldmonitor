@@ -480,6 +480,17 @@ export class DataLoaderManager implements AppModule {
   constructor(ctx: AppContext, callbacks: DataLoaderCallbacks) {
     this.ctx = ctx;
     this.callbacks = callbacks;
+    // Dev-only debug handle for inspecting news load state from the console.
+    if (import.meta.env.DEV && typeof window !== 'undefined') {
+      (window as unknown as Record<string, unknown>).__wmDebugNews = () => ({
+        categories: Object.fromEntries(
+          Object.entries(this.ctx.newsByCategory).map(([k, v]) => [k, v.length]),
+        ),
+        newsPanels: Object.keys(this.ctx.newsPanels),
+        loadedSignature: this.loadedNewsSignature !== null,
+        workList: this.resolveEnabledNewsCategories().map(c => `${c.key}${c.isCustom ? ':custom' : ''}`),
+      });
+    }
   }
 
   private getHydrationTier(name: string): HydrationTier {

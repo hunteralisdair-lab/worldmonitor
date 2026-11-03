@@ -191,6 +191,7 @@ export const VARIANT_SWITCHER_DASHBOARD_URLS = {
   commodity: 'https://commodity.worldmonitor.app/dashboard',
   energy: 'https://energy.worldmonitor.app/dashboard',
   happy: 'https://happy.worldmonitor.app/dashboard',
+  politics: 'https://politics.worldmonitor.app/dashboard',
 } as const;
 
 export function variantSwitcherHref(
@@ -956,6 +957,15 @@ export class PanelLayoutManager implements AppModule {
                title="Good News${SITE_VARIANT === 'happy' ? ` ${t('common.currentVariant')}` : ''}">
               <span class="variant-icon">☀️</span>
               <span class="variant-label">Good News</span>
+            </a>
+            <span class="variant-divider"></span>
+            <a href="${vHref('politics')}"
+               class="variant-option ${SITE_VARIANT === 'politics' ? 'active' : ''}"
+               data-variant="politics"
+               ${vTarget('politics')}
+               title="Politics${SITE_VARIANT === 'politics' ? ` ${t('common.currentVariant')}` : ''}">
+              <span class="variant-icon">🏛️</span>
+              <span class="variant-label">Politics</span>
             </a>`;
       })()}</div>
           <span class="logo">MONITOR</span><span class="logo-mobile">World Monitor</span><span class="version">v${__APP_VERSION__}</span>${BETA_MODE ? '<span class="beta-badge">BETA</span>' : ''}
@@ -1023,6 +1033,7 @@ export class PanelLayoutManager implements AppModule {
           { key: 'commodity', icon: '⛏️', label: t('header.commodity') },
           { key: 'energy', icon: '⚡', label: t('header.energy') },
           { key: 'happy', icon: '☀️', label: 'Good News' },
+          { key: 'politics', icon: '🏛️', label: 'Politics' },
         ];
         return variants.map(v =>
           `<button class="mobile-menu-item mobile-menu-variant ${v.key === SITE_VARIANT ? 'active' : ''}" data-variant="${v.key}">

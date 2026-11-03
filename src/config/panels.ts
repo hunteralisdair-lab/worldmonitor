@@ -1112,10 +1112,56 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
 };
 
 // ============================================
+// POLITICS VARIANT (Politics fork)
+// ============================================
+// Category keys reused from the full variant keep the web digest working;
+// the politics-only news keys (uk-politics, social, environment, econ-news)
+// fetch direct on local/desktop. Keep in sync with POLITICS_FEEDS in feeds.ts.
+const POLITICS_PANELS: Record<string, PanelConfig> = {
+  map: { name: 'Global Politics Map', enabled: true, priority: 1 },
+  'live-news': { name: 'Politics Headlines', enabled: true, priority: 1 },
+  insights: { name: 'AI Political Insights', enabled: true, priority: 1 },
+  'latest-brief': { name: 'Latest Brief', enabled: true, priority: 1, premium: 'locked' as const },
+  // News
+  politics: { name: 'World News', enabled: true, priority: 1 },
+  us: { name: 'United States', enabled: true, priority: 1 },
+  europe: { name: 'Europe', enabled: true, priority: 1 },
+  middleeast: { name: 'Middle East', enabled: true, priority: 1 },
+  africa: { name: 'Africa', enabled: true, priority: 2 },
+  latam: { name: 'Latin America', enabled: true, priority: 2 },
+  asia: { name: 'Asia-Pacific', enabled: true, priority: 2 },
+  // Politics
+  'uk-politics': { name: 'UK Politics', enabled: true, priority: 1 },
+  gov: { name: 'Government', enabled: true, priority: 1 },
+  thinktanks: { name: 'Think Tanks', enabled: true, priority: 1 },
+  polymarket: { name: 'Predictions', enabled: true, priority: 1 },
+  cii: { name: 'Country Instability', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
+  'strategic-risk': { name: 'Strategic Risk Overview', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
+  'ucdp-events': { name: 'UCDP Conflict Events', enabled: true, priority: 2 },
+  displacement: { name: 'UNHCR Displacement', enabled: true, priority: 2 },
+  // Social
+  social: { name: 'Society', enabled: true, priority: 1 },
+  // Environmental
+  environment: { name: 'Environment', enabled: true, priority: 1 },
+  'climate-news': { name: 'Climate News', enabled: true, priority: 2 },
+  // Economical
+  'econ-news': { name: 'Economy', enabled: true, priority: 1 },
+  markets: { name: 'Markets', enabled: true, priority: 2 },
+  'trade-policy': { name: 'Trade Policy', enabled: true, priority: 2, premium: 'locked' as const },
+  'sanctions-pressure': { name: 'Sanctions Pressure', enabled: true, priority: 2 },
+  // Utilities
+  monitors: { name: 'My Monitors', enabled: true, priority: 2 },
+  'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
+};
+
+const POLITICS_MAP_LAYERS: MapLayers = { ...FULL_MAP_LAYERS };
+const POLITICS_MOBILE_MAP_LAYERS: MapLayers = { ...FULL_MOBILE_MAP_LAYERS };
+
+// ============================================
 // UNIFIED PANEL REGISTRY
 // ============================================
 
-type PanelVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy';
+type PanelVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy' | 'politics';
 
 const VARIANT_PANEL_CONFIGS: Record<PanelVariant, Record<string, PanelConfig>> = {
   full: FULL_PANELS,
@@ -1124,6 +1170,7 @@ const VARIANT_PANEL_CONFIGS: Record<PanelVariant, Record<string, PanelConfig>> =
   commodity: COMMODITY_PANELS,
   energy: ENERGY_PANELS,
   happy: HAPPY_PANELS,
+  politics: POLITICS_PANELS,
 };
 
 function getVariantPanelConfigs(variant: string): Record<string, PanelConfig> | undefined {
@@ -1134,6 +1181,7 @@ function getVariantPanelConfigs(variant: string): Record<string, PanelConfig> | 
 
 /** All panels from all variants — canonical cross-variant registry. */
 export const ALL_PANELS: Record<string, PanelConfig> = {
+  ...POLITICS_PANELS,
   ...HAPPY_PANELS,
   ...COMMODITY_PANELS,
   ...ENERGY_PANELS,
@@ -1150,6 +1198,7 @@ export const VARIANT_DEFAULTS: Record<string, string[]> = {
   commodity: Object.keys(VARIANT_PANEL_CONFIGS.commodity),
   energy:    Object.keys(VARIANT_PANEL_CONFIGS.energy),
   happy:     Object.keys(VARIANT_PANEL_CONFIGS.happy),
+  politics:  Object.keys(VARIANT_PANEL_CONFIGS.politics),
 };
 
 /**
@@ -1179,6 +1228,11 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
   },
   happy: {
     map:         { name: 'World Map' },
+  },
+  politics: {
+    map:         { name: 'Global Politics Map' },
+    'live-news': { name: 'Politics Headlines' },
+    insights:    { name: 'AI Political Insights' },
   },
 };
 
@@ -1425,7 +1479,9 @@ export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
         ? COMMODITY_MAP_LAYERS
         : SITE_VARIANT === 'energy'
           ? ENERGY_MAP_LAYERS
-          : FULL_MAP_LAYERS;
+          : SITE_VARIANT === 'politics'
+            ? POLITICS_MAP_LAYERS
+            : FULL_MAP_LAYERS;
 
 export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
   ? HAPPY_MOBILE_MAP_LAYERS
@@ -1437,7 +1493,9 @@ export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
         ? COMMODITY_MOBILE_MAP_LAYERS
         : SITE_VARIANT === 'energy'
           ? ENERGY_MOBILE_MAP_LAYERS
-          : FULL_MOBILE_MAP_LAYERS;
+          : SITE_VARIANT === 'politics'
+            ? POLITICS_MOBILE_MAP_LAYERS
+            : FULL_MOBILE_MAP_LAYERS;
 
 /** Maps map-layer toggle keys to their data-freshness source IDs (single source of truth). */
 export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
@@ -1574,6 +1632,33 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
     labelKey: 'header.panelCatCommodityEcon',
     panelKeys: ['trade-policy', 'sanctions-pressure', 'economic', 'gulf-economies', 'gcc-investments', 'consumer-prices', 'finance', 'polymarket', 'airline-intel', 'world-clock', 'monitors'],
     variants: ['commodity'],
+  },
+
+  // Politics variant — the five fork headings
+  polNews: {
+    labelKey: 'header.panelCatPolNews',
+    panelKeys: ['politics', 'us', 'europe', 'middleeast', 'africa', 'latam', 'asia'],
+    variants: ['politics'],
+  },
+  polSocial: {
+    labelKey: 'header.panelCatPolSocial',
+    panelKeys: ['social'],
+    variants: ['politics'],
+  },
+  polEnvironment: {
+    labelKey: 'header.panelCatPolEnvironment',
+    panelKeys: ['environment', 'climate-news'],
+    variants: ['politics'],
+  },
+  polEconomy: {
+    labelKey: 'header.panelCatPolEconomy',
+    panelKeys: ['econ-news', 'markets', 'trade-policy', 'sanctions-pressure'],
+    variants: ['politics'],
+  },
+  polPolitics: {
+    labelKey: 'header.panelCatPolPolitics',
+    panelKeys: ['uk-politics', 'gov', 'thinktanks', 'polymarket', 'cii', 'strategic-risk', 'ucdp-events', 'displacement'],
+    variants: ['politics'],
   },
 
   // Happy variant
