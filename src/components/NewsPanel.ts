@@ -7,6 +7,8 @@ import { escapeHtml, sanitizeUrl, unsafeRawHtml } from '@/utils/sanitize';
 import { computeNewSinceVisit } from '@/utils/new-since-visit';
 import { analysisWorker, enrichWithVelocityML, getClusterAssetContext, MAX_DISTANCE_KM, activityTracker, generateSummary, translateText, preloadRelatedAssetTables } from '@/services';
 import { SITE_VARIANT } from '@/config';
+import { getSourceBias } from '@/config/source-bias';
+import { getPerspectiveLens, subscribePerspective, lensMatchesBias } from '@/services/perspective-store';
 import { t, getCurrentLanguage } from '@/services/i18n';
 import { track } from '@/services/analytics';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
@@ -22,6 +24,15 @@ import {
 
 
 type SortMode = 'relevance' | 'newest';
+
+/** Locale key suffixes for the 5-point bias scale (keys use camelCase). */
+const BIAS_LABEL_KEYS: Record<string, string> = {
+  'left': 'left',
+  'center-left': 'centerLeft',
+  'center': 'center',
+  'center-right': 'centerRight',
+  'right': 'right',
+};
 
 /** Threshold for enabling virtual scrolling */
 const VIRTUAL_SCROLL_THRESHOLD = 15;
@@ -60,6 +71,9 @@ export class NewsPanel extends Panel {
   private lastRawClusters: ClusteredEvent[] | null = null;
   private lastRawItems: NewsItem[] | null = null;
   private relatedAssetTableRefreshPending = false;
+
+  // Political perspective lens (politics variant only)
+  private unsubscribePerspective: (() => void) | null = null;
 
   /**
    * How much of this category's enabled source list the panel is actually
@@ -103,6 +117,18 @@ export class NewsPanel extends Panel {
     this.setupActivityTracking();
     this.initWindowedList();
     this.setupContentDelegation();
+
+    if (SITE_VARIANT === 'politics') {
+      // Lens switches re-rank the cached data in place — same pattern as the
+      // sort toggle. Data reloads are never needed: the lens only reorders.
+      this.unsubscribePerspective = subscribePerspective(() => {
+        if (this.lastRawClusters) {
+          this.renderClusters(this.lastRawClusters);
+        } else if (this.lastRawItems) {
+          this.renderFlat(this.lastRawItems);
+        }
+      });
+    }
   }
 
   private initWindowedList(): void {
@@ -512,6 +538,33 @@ export class NewsPanel extends Panel {
     }
   }
 
+  /**
+   * Political perspective lens (politics variant only): stable re-rank that
+   * surfaces matching-side sources first and keeps everything else in its
+   * existing order after them. A LENS, not a filter — nothing is dropped.
+   */
+  private applyPerspectiveRank<T>(list: T[], sourceOf: (entry: T) => string): T[] {
+    if (SITE_VARIANT !== 'politics') return list;
+    const lens = getPerspectiveLens();
+    if (lens === 'balanced') return list;
+    const matching: T[] = [];
+    const rest: T[] = [];
+    for (const entry of list) {
+      (lensMatchesBias(lens, getSourceBias(sourceOf(entry))) ? matching : rest).push(entry);
+    }
+    return [...matching, ...rest];
+  }
+
+  /** Small colored dot showing the source's 5-point bias rating (politics only). */
+  private renderBiasDot(sourceName: string): string {
+    if (SITE_VARIANT !== 'politics') return '';
+    const bias = getSourceBias(sourceName);
+    const label = bias
+      ? t(`components.perspective.bias.${BIAS_LABEL_KEYS[bias]}`)
+      : t('components.perspective.bias.unrated');
+    return `<span class="bias-dot ${bias ? `bias-${bias}` : 'bias-unrated'}" title="${escapeHtml(label)}"></span>`;
+  }
+
   private renderFlat(items: NewsItem[]): void {
     this.lastRawItems = items;
 
@@ -527,6 +580,8 @@ export class NewsPanel extends Panel {
         return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
       });
     }
+
+    sorted = this.applyPerspectiveRank(sorted, item => item.source);
 
     this.setCount(sorted.length);
     const topItems = sorted
@@ -544,7 +599,7 @@ export class NewsPanel extends Panel {
         (item) => `
       <div class="item ${item.isAlert ? 'alert' : ''}" ${item.monitorColor ? `style="border-inline-start-color: ${escapeHtml(item.monitorColor)}"` : ''}>
         <div class="item-source">
-          ${escapeHtml(item.source)}
+          ${this.renderBiasDot(item.source)}${escapeHtml(item.source)}
           ${item.lang && item.lang !== getCurrentLanguage() ? `<span class="lang-badge">${item.lang.toUpperCase()}</span>` : ''}
           ${item.storyMeta?.phase === 'breaking' ? '<span class="phase-badge breaking">BREAKING</span>' : ''}
           ${item.storyMeta?.phase === 'developing' ? `<span class="phase-badge developing">DEVELOPING${item.storyMeta.mentionCount > 1 ? ` ×${item.storyMeta.mentionCount}` : ''}</span>` : ''}
@@ -570,17 +625,20 @@ export class NewsPanel extends Panel {
     this.lastRawItems = null;
 
     // Sort based on user preference (#107)
-    const sorted = [...clusters].sort((a, b) => {
-      if (this.sortMode === 'newest') {
-        // Pure chronological, newest first
+    const sorted = this.applyPerspectiveRank(
+      [...clusters].sort((a, b) => {
+        if (this.sortMode === 'newest') {
+          // Pure chronological, newest first
+          return b.lastUpdated.getTime() - a.lastUpdated.getTime();
+        }
+        // Default: threat priority first, then recency within same level
+        const pa = THREAT_PRIORITY[a.threat?.level ?? 'info'];
+        const pb = THREAT_PRIORITY[b.threat?.level ?? 'info'];
+        if (pb !== pa) return pb - pa;
         return b.lastUpdated.getTime() - a.lastUpdated.getTime();
-      }
-      // Default: threat priority first, then recency within same level
-      const pa = THREAT_PRIORITY[a.threat?.level ?? 'info'];
-      const pb = THREAT_PRIORITY[b.threat?.level ?? 'info'];
-      if (pb !== pa) return pb - pa;
-      return b.lastUpdated.getTime() - a.lastUpdated.getTime();
-    });
+      }),
+      cluster => cluster.primarySource,
+    );
 
     const totalItems = sorted.reduce((sum, c) => sum + c.sourceCount, 0);
     this.setCount(totalItems);
@@ -797,7 +855,7 @@ export class NewsPanel extends Panel {
       <div class="${itemClasses}" ${cluster.monitorColor ? `style="border-inline-start-color: ${escapeHtml(cluster.monitorColor)}"` : ''} data-cluster-id="${escapeHtml(cluster.id)}" data-news-id="${escapeHtml(cluster.primaryLink)}">
         <div class="item-source">
           ${tierBadge}
-          ${escapeHtml(cluster.primarySource)}
+          ${this.renderBiasDot(cluster.primarySource)}${escapeHtml(cluster.primarySource)}
           ${primaryPropBadge}
           ${langBadge}
           ${newTag}
@@ -938,6 +996,10 @@ export class NewsPanel extends Panel {
     // Clean up windowed list
     this.windowedList?.destroy();
     this.windowedList = null;
+
+    // Unsubscribe from the perspective lens store
+    this.unsubscribePerspective?.();
+    this.unsubscribePerspective = null;
 
     // Remove activity tracking listeners
     if (this.boundScrollHandler) {

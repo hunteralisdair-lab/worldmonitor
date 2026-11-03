@@ -180,3 +180,100 @@
 :root[data-variant="politics"] .mobile-panel-nav-chip {
   font-family: var(--font-serif);
 }
+
+/* ---------- Political perspective lens ----------
+   Bias dot colors follow the UK party convention: RED marks the LEFT end
+   (Labour red) and BLUE the RIGHT end (Conservative blue) — the inverse of
+   the US scheme. Center stays on the theme's neutral brass/gold so it reads
+   as "neither", not as a third party. 5-point scale: left, center-left,
+   center, center-right, right. */
+:root[data-variant="politics"] {
+  --bias-left: #d64541;
+  --bias-center-left: #c98a80;
+  --bias-center: #b3a06c;
+  --bias-center-right: #7d9fc7;
+  --bias-right: #3c78b4;
+}
+:root[data-variant="politics"][data-theme="light"] {
+  --bias-left: #b03a34;
+  --bias-center-left: #ad6a5e;
+  --bias-center: #8a7948;
+  --bias-center-right: #51749e;
+  --bias-right: #1f4e79;
+}
+
+/* Bias dot on news items: solid = rated, hollow/dim = unrated */
+:root[data-variant="politics"] .bias-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: 1px;
+  flex: none;
+}
+:root[data-variant="politics"] .bias-dot.bias-left { background: var(--bias-left); }
+:root[data-variant="politics"] .bias-dot.bias-center-left { background: var(--bias-center-left); }
+:root[data-variant="politics"] .bias-dot.bias-center { background: var(--bias-center); }
+:root[data-variant="politics"] .bias-dot.bias-center-right { background: var(--bias-center-right); }
+:root[data-variant="politics"] .bias-dot.bias-right { background: var(--bias-right); }
+:root[data-variant="politics"] .bias-dot.bias-unrated {
+  background: transparent;
+  border: 1px solid var(--text-faint);
+  width: 6px;
+  height: 6px;
+}
+
+/* Header segmented control: Balanced | Left | Center | Right */
+:root[data-variant="politics"] .perspective-control {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface);
+  flex: none;
+}
+:root[data-variant="politics"] .perspective-option {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+:root[data-variant="politics"] .perspective-option + .perspective-option {
+  border-left: 1px solid var(--border);
+}
+:root[data-variant="politics"] .perspective-option:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+:root[data-variant="politics"] .perspective-option.active {
+  color: var(--accent);
+  background: var(--surface-active);
+}
+
+/* Mobile: header is too tight — the control lives in the mobile menu */
+:root[data-variant="politics"] .mobile-perspective {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 16px;
+}
+:root[data-variant="politics"] .mobile-perspective-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+@media (max-width: 768px) {
+  :root[data-variant="politics"] .header-right .perspective-control {
+    display: none;
+  }
+}

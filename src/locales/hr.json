@@ -2861,6 +2861,21 @@
       "rubBase": "Središnja banka Rusije — rubalja po 1 jedinici",
       "rubPerUnit": "Rubalja po jedinici",
       "sourceCbr": "Izvor: Središnja banka Rusije"
+    },
+    "perspective": {
+      "lensLabel": "Perspective lens",
+      "balanced": "Balanced",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "bias": {
+        "left": "Source leans left",
+        "centerLeft": "Source leans center-left",
+        "center": "Source rated center",
+        "centerRight": "Source leans center-right",
+        "right": "Source leans right",
+        "unrated": "Source not yet rated"
+      }
     }
   },
   "popups": {

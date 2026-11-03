@@ -41,6 +41,7 @@ import { t } from '@/services/i18n';
 import { getCurrentTheme } from '@/utils';
 import { trackCriticalBannerAction, trackCheckoutSuccess, trackCheckoutFailed, trackGateHit, trackMapViewChange, replayPendingCheckoutSuccess, replayPendingProFunnelEvents, replayPendingConversionEvents } from '@/services/analytics';
 import { getStoredMapModePreference } from '@/services/map-mode-preference';
+import { PERSPECTIVE_LENSES, getPerspectiveLens, setPerspectiveLens, subscribePerspective, normalizePerspectiveLens, type PerspectiveLens } from '@/services/perspective-store';
 import { loadWidgets, saveWidget, isProUser, isProTierResolved } from '@/services/widget-store';
 import { sanitizeLockedLayers, shouldSanitizeLockedLayers } from '@/config/map-layer-definitions';
 import type { CustomWidgetSpec } from '@/services/widget-store';
@@ -1005,6 +1006,7 @@ export class PanelLayoutManager implements AppModule {
           </button>
         </div>
         <div class="header-right">
+          ${SITE_VARIANT === 'politics' ? this.renderPerspectiveControlHtml() : ''}
           <button class="search-btn" id="searchBtn"><kbd>⌘K</kbd> ${t('header.search')}</button>
           ${this.ctx.isDesktopApp ? '' : `<button class="copy-link-btn" id="copyLinkBtn">${t('header.copyLink')}</button>`}
           ${this.ctx.isDesktopApp ? '' : `<button class="copy-link-btn embed-link-btn" id="embedLinkBtn">${t('header.embed')}</button>`}
@@ -1047,6 +1049,12 @@ export class PanelLayoutManager implements AppModule {
           </button>`
         ).join('');
       })()}
+        ${SITE_VARIANT === 'politics' ? `
+        <div class="mobile-menu-divider"></div>
+        <div class="mobile-perspective">
+          <span class="mobile-perspective-label">${t('components.perspective.lensLabel')}</span>
+          ${this.renderPerspectiveControlHtml()}
+        </div>` : ''}
         <div class="mobile-menu-divider"></div>
         <button class="mobile-menu-item" id="mobileMenuRegion">
           <span class="mobile-menu-item-icon">🌐</span>
@@ -1203,12 +1211,60 @@ export class PanelLayoutManager implements AppModule {
     } else if (this.useSideNav()) {
       this.setupSidePanelNav();
     }
+
+    this.setupPerspectiveControls();
   }
 
   /** Politics variant gets a desktop left category nav (the fork's five
    *  headings); other variants keep the original layout untouched. */
   private useSideNav(): boolean {
     return !this.ctx.isMobile && SITE_VARIANT === 'politics';
+  }
+
+  // ============================================
+  // Political perspective lens (politics variant)
+  // ============================================
+
+  /** Compact segmented control: Balanced | Left | Center | Right. Rendered in
+   *  the desktop header and the mobile menu; both instances share the store. */
+  private renderPerspectiveControlHtml(): string {
+    return `
+      <div class="perspective-control" role="group" aria-label="${t('components.perspective.lensLabel')}">
+        ${PERSPECTIVE_LENSES.map(lens => `
+          <button class="perspective-option${getPerspectiveLens() === lens ? ' active' : ''}"
+                  type="button" data-lens="${lens}"
+                  aria-pressed="${getPerspectiveLens() === lens}">${t(`components.perspective.${lens}`)}</button>
+        `).join('')}
+      </div>`;
+  }
+
+  private setupPerspectiveControls(): void {
+    if (SITE_VARIANT !== 'politics') return;
+    const controls = Array.from(document.querySelectorAll<HTMLElement>('.perspective-control'));
+    if (controls.length === 0) return;
+
+    const applyActiveState = (lens: PerspectiveLens) => {
+      for (const control of controls) {
+        for (const btn of control.querySelectorAll<HTMLButtonElement>('.perspective-option')) {
+          const isActive = btn.dataset.lens === lens;
+          btn.classList.toggle('active', isActive);
+          btn.setAttribute('aria-pressed', String(isActive));
+        }
+      }
+    };
+
+    for (const control of controls) {
+      control.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.perspective-option');
+        if (!btn?.dataset.lens) return;
+        setPerspectiveLens(normalizePerspectiveLens(btn.dataset.lens));
+      });
+    }
+
+    // The store notifies on every change, so both header and mobile-menu
+    // instances stay in sync no matter which one was tapped.
+    subscribePerspective(applyActiveState);
+    applyActiveState(getPerspectiveLens());
   }
 
   // ============================================

@@ -2606,6 +2606,21 @@
       "rubBase": "러시아 중앙은행 — 단위당 루블",
       "rubPerUnit": "단위당 루블",
       "sourceCbr": "출처: 러시아 중앙은행"
+    },
+    "perspective": {
+      "lensLabel": "Perspective lens",
+      "balanced": "Balanced",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right",
+      "bias": {
+        "left": "Source leans left",
+        "centerLeft": "Source leans center-left",
+        "center": "Source rated center",
+        "centerRight": "Source leans center-right",
+        "right": "Source leans right",
+        "unrated": "Source not yet rated"
+      }
     }
   },
   "popups": {

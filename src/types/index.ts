@@ -66,6 +66,9 @@ export interface DeductContextDetail {
 
 export type PropagandaRisk = 'low' | 'medium' | 'high' | 'unknown';
 
+/** 5-point editorial perspective rating for a news source (politics variant). */
+export type SourceBias = 'left' | 'center-left' | 'center' | 'center-right' | 'right';
+
 export interface Feed {
   name: string;
   url: string | Record<string, string>;
@@ -73,6 +76,7 @@ export interface Feed {
   region?: string;
   propagandaRisk?: PropagandaRisk;
   stateAffiliated?: string;  // e.g., "Russia", "China", "Iran"
+  bias?: SourceBias;         // political perspective rating (see src/config/source-bias.ts)
   lang?: string;             // ISO 2-letter code for filtering (locale boost)
   strategicDefault?: boolean; // always default-on regardless of UI language
 }
