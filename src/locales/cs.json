@@ -291,7 +291,12 @@
     "panelCatCommodityEcon": "Ekonomika a obchod",
     "panelCatHappyNews": "Dobré zprávy",
     "panelCatHappyPlanet": "Planeta a dárcovství",
-    "embed": "Vložit"
+    "embed": "Vložit",
+    "panelCatPolNews": "News",
+    "panelCatPolSocial": "Social",
+    "panelCatPolEnvironment": "Environmental",
+    "panelCatPolEconomy": "Economical",
+    "panelCatPolPolitics": "Politics"
   },
   "panels": {
     "liveNews": "Živé zprávy",

@@ -356,7 +356,12 @@
     "panelCatCommodityEcon": "Gazdaság & Kereskedelem",
     "panelCatHappyNews": "Jó Hírek",
     "panelCatHappyPlanet": "Bolygó & Adományozás",
-    "embed": "Beágyazás"
+    "embed": "Beágyazás",
+    "panelCatPolNews": "News",
+    "panelCatPolSocial": "Social",
+    "panelCatPolEnvironment": "Environmental",
+    "panelCatPolEconomy": "Economical",
+    "panelCatPolPolitics": "Politics"
   },
   "panels": {
     "liveNews": "Élő Hírek",

@@ -3058,7 +3058,12 @@
     "panelCatCommodityEcon": "Economia & Comércio",
     "panelCatHappyNews": "Boas Notícias",
     "panelCatHappyPlanet": "Planeta & Doações",
-    "embed": "Incorporar"
+    "embed": "Incorporar",
+    "panelCatPolNews": "News",
+    "panelCatPolSocial": "Social",
+    "panelCatPolEnvironment": "Environmental",
+    "panelCatPolEconomy": "Economical",
+    "panelCatPolPolitics": "Politics"
   },
   "countryBrief": {
     "identifying": "Identificando país...",

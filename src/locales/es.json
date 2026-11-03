@@ -289,7 +289,12 @@
     "panelCatCommodityEcon": "Economía y Comercio",
     "panelCatHappyNews": "Buenas Noticias",
     "panelCatHappyPlanet": "Planeta y Donaciones",
-    "embed": "Insertar"
+    "embed": "Insertar",
+    "panelCatPolNews": "News",
+    "panelCatPolSocial": "Social",
+    "panelCatPolEnvironment": "Environmental",
+    "panelCatPolEconomy": "Economical",
+    "panelCatPolPolitics": "Politics"
   },
   "panels": {
     "liveNews": "Noticias en vivo",

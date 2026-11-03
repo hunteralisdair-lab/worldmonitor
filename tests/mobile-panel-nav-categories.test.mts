@@ -52,7 +52,7 @@ describe('getVariantPanelCategories', () => {
   it('unscoped categories (core) are available to every variant', () => {
     assert.equal(PANEL_CATEGORY_MAP['core']!.variants, undefined, 'core stays unscoped');
     const enabled = settings({ 'live-news': true });
-    for (const variant of ['full', 'tech', 'finance', 'commodity', 'energy', 'happy']) {
+    for (const variant of ['full', 'tech', 'finance', 'commodity', 'energy', 'happy', 'politics']) {
       const result = getVariantPanelCategories(enabled, variant);
       assert.ok(
         result.some((c) => c.key === 'core'),

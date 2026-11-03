@@ -236,6 +236,7 @@ describe('news panel ↔ feed coverage (panel-layout createNewsPanel ⇔ feeds.t
     'COMMODITY_FEEDS',
     'ENERGY_FEEDS',
     'HAPPY_FEEDS',
+    'POLITICS_FEEDS',
   ];
 
   test('every createNewsPanel(...) key resolves to feeds in CANONICAL_FEEDS', () => {

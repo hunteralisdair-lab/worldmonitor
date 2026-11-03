@@ -59,7 +59,9 @@ class MemoryStorage {
   }
 }
 
-const VARIANTS: MapVariant[] = ['full', 'tech', 'finance', 'commodity', 'energy', 'happy'];
+// 'politics' reuses the full variant's layer order (no VARIANT_LAYER_ORDER
+// entry), so it is cast in rather than widening MapVariant.
+const VARIANTS: MapVariant[] = ['full', 'tech', 'finance', 'commodity', 'energy', 'happy', 'politics' as MapVariant];
 
 let originalLocalStorage: PropertyDescriptor | undefined;
 let originalWindow: PropertyDescriptor | undefined;
