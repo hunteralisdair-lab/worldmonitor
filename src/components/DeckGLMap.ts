@@ -1000,6 +1000,10 @@ export class DeckGLMap {
         type: 'raster',
         tiles: [this.radarTileUrl],
         tileSize: 256,
+        // RainViewer's 256px radar composite ends at z7; beyond that the CDN
+        // serves a literal "Zoom Level Not Supported" watermark tile. Capping
+        // the source makes MapLibre overzoom the z7 tiles instead.
+        maxzoom: 7,
         attribution: '© RainViewer',
       });
       const beforeId = this.maplibreMap.getLayer('country-interactive') ? 'country-interactive' : undefined;
