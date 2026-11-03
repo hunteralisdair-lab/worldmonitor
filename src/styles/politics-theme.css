@@ -277,3 +277,86 @@
     display: none;
   }
 }
+
+/* ---------- Regional stories rail (zoomed into the UK) ---------- */
+:root[data-variant="politics"] .regional-stories-rail {
+  position: absolute;
+  top: 48px;
+  right: 44px; /* clear of the zoom controls on the map's right edge */
+  width: 272px;
+  max-height: 46%;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  box-shadow: 0 4px 18px var(--shadow-color);
+  z-index: 15;
+  overflow: hidden;
+}
+:root[data-variant="politics"] .regional-rail-header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+:root[data-variant="politics"] .regional-rail-title {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+:root[data-variant="politics"] .regional-rail-count {
+  font-size: 9px;
+  color: var(--text-dim);
+  flex: 1;
+}
+:root[data-variant="politics"] .regional-rail-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+:root[data-variant="politics"] .regional-rail-close:hover { color: var(--text); }
+:root[data-variant="politics"] .regional-rail-body {
+  overflow-y: auto;
+  padding: 4px 0;
+}
+:root[data-variant="politics"] .regional-rail-item {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+:root[data-variant="politics"] .regional-rail-item:last-child { border-bottom: none; }
+:root[data-variant="politics"] .regional-rail-source {
+  display: block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-dim);
+  margin-bottom: 2px;
+}
+:root[data-variant="politics"] .regional-rail-link {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  text-decoration: none;
+  display: block;
+}
+:root[data-variant="politics"] .regional-rail-link:hover { color: var(--accent); }
+:root[data-variant="politics"] .regional-rail-empty {
+  padding: 10px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+/* The rail competes with the mobile sheet and small maps for space */
+@media (max-width: 768px) {
+  :root[data-variant="politics"] .regional-stories-rail { display: none; }
+}
