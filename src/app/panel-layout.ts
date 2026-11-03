@@ -22,6 +22,7 @@ import type { TheaterPostureSummary } from '@/services/military-surge';
 import type { NewsPanel } from '@/components/NewsPanel';
 import type { AviationCommandBar } from '@/components/AviationCommandBar';
 import { MobilePanelNav } from '@/components/MobilePanelNav';
+import { SidePanelNav } from '@/components/SidePanelNav';
 import { debounce, loadFromStorage, saveToStorage } from '@/utils';
 import { escapeHtml } from '@/utils/sanitize';
 import {
@@ -409,6 +410,7 @@ export class PanelLayoutManager implements AppModule {
   private bottomSetMemory: Set<string> = new Set();
   private criticalBannerEl: HTMLElement | null = null;
   private mobilePanelNav: MobilePanelNav | null = null;
+  private sidePanelNav: SidePanelNav | null = null;
   private mobileMapCollapseBtn: HTMLButtonElement | null = null;
   private panelTabBar: PanelTabBar | null = null;
   private tabsState: TabsState | null = null;
@@ -732,6 +734,8 @@ export class PanelLayoutManager implements AppModule {
     }
     this.mobilePanelNav?.destroy();
     this.mobilePanelNav = null;
+    this.sidePanelNav?.destroy();
+    this.sidePanelNav = null;
     this.mobileMapCollapseBtn = null;
     this.panelTabBar?.destroy();
     this.panelTabBar = null;
@@ -1098,6 +1102,7 @@ export class PanelLayoutManager implements AppModule {
       ).join('')}
       </div>
       <div class="dashboard-tabs-mount" id="panelTabsMount"></div>
+      ${this.useSideNav() ? '<div class="main-row" id="mainRow"><aside class="side-panel-nav-mount" id="sideNavMount"></aside>' : ''}
       <main id="main" tabindex="-1" class="main-content${this.ctx.isDesktopApp ? ' desktop-grid' : ''}">
         <div class="map-section${mapStartsCollapsed ? ' collapsed' : ''}" id="mapSection">
           <div class="panel-header">
@@ -1128,6 +1133,7 @@ export class PanelLayoutManager implements AppModule {
         <div class="map-width-resize-handle" id="mapWidthResizeHandle"></div>
         <div class="panels-grid" id="panelsGrid" role="tabpanel"></div>
       </main>
+      ${this.useSideNav() ? '</div>' : ''}
       <nav class="mobile-tab-bar" id="mobileTabBar" aria-label="Primary">
         <button class="mobile-tab active" type="button" data-mobile-tab="today" aria-current="page">
           <span class="mobile-tab-icon" aria-hidden="true">◉</span><span>Today</span>
@@ -1194,7 +1200,15 @@ export class PanelLayoutManager implements AppModule {
     if (this.ctx.isMobile) {
       this.setupMobileMapToggle();
       this.setupMobilePanelNav();
+    } else if (this.useSideNav()) {
+      this.setupSidePanelNav();
     }
+  }
+
+  /** Politics variant gets a desktop left category nav (the fork's five
+   *  headings); other variants keep the original layout untouched. */
+  private useSideNav(): boolean {
+    return !this.ctx.isMobile && SITE_VARIANT === 'politics';
   }
 
   // ============================================
@@ -1502,6 +1516,14 @@ export class PanelLayoutManager implements AppModule {
     this.mobilePanelNav.refresh();
   }
 
+  private setupSidePanelNav(): void {
+    const mount = document.getElementById('sideNavMount');
+    if (!mount) return;
+    this.sidePanelNav = new SidePanelNav(() => this.ctx.panelSettings);
+    mount.appendChild(this.sidePanelNav.getElement());
+    this.sidePanelNav.refresh();
+  }
+
   private updateMobileMapCollapseBtn(isCollapsed: boolean): void {
     if (!this.mobileMapCollapseBtn) return;
     this.mobileMapCollapseBtn.textContent = isCollapsed
@@ -1656,6 +1678,7 @@ export class PanelLayoutManager implements AppModule {
       }
     });
     this.mobilePanelNav?.refresh();
+    this.sidePanelNav?.refresh();
   }
 
   /**
@@ -1821,6 +1844,7 @@ export class PanelLayoutManager implements AppModule {
       this.insertByOrder(grid, el, key);
     }
     this.mobilePanelNav?.applyToNewPanel(el);
+    this.sidePanelNav?.applyToNewPanel(el);
     panel.notifyConnected();
     return true;
   }
@@ -1845,6 +1869,7 @@ export class PanelLayoutManager implements AppModule {
       this.insertByOrder(grid, placeholder, key);
       reconcileDeferredPanelShellColSpan(placeholder);
       this.mobilePanelNav?.applyToNewPanel(placeholder);
+      this.sidePanelNav?.applyToNewPanel(placeholder);
     }
     const existing = this.deferredPanelMounts.get(key);
     existing?.observer?.disconnect();
@@ -3008,6 +3033,7 @@ export class PanelLayoutManager implements AppModule {
         grid.appendChild(el);
       }
       this.mobilePanelNav?.applyToNewPanel(el);
+      this.sidePanelNav?.applyToNewPanel(el);
       panel.notifyConnected();
       this.afterPanelMounted(key, panel);
     }

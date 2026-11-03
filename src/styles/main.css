@@ -27552,3 +27552,74 @@ body.map-width-resizing {
 .markers-settled .tech-event-marker.upcoming-soon::after {
   animation: none;
 }
+
+/* ============================================
+   POLITICS FORK: desktop left category nav (SidePanelNav)
+   Row wrapper takes <main>'s place as #app's flex child; the nav docks
+   left of the whole dashboard (map + panels). Filtering reuses the
+   mobile `.mobile-cat-hidden` contract, scoped by `.side-nav-scope` so
+   other variants' mobile-only semantics stay untouched.
+   ============================================ */
+.main-row {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 0;
+  overflow: hidden;
+}
+.main-row > .main-content {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.side-panel-nav-mount {
+  flex: 0 0 170px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.side-panel-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 8px;
+}
+.side-panel-nav-chip {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.side-panel-nav-chip:hover {
+  background: var(--bg-secondary);
+  color: var(--accent);
+}
+.side-panel-nav-chip.active {
+  background: var(--bg-secondary);
+  color: var(--green);
+  border-color: var(--border);
+}
+.side-panel-nav-chip-pro {
+  color: #e0b64e;
+}
+.panels-grid.side-nav-scope .mobile-cat-hidden {
+  display: none;
+}
+@media (max-width: 768px) {
+  .main-row { display: contents; }
+  .side-panel-nav-mount { display: none; }
+}

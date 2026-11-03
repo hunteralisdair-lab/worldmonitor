@@ -404,6 +404,16 @@
       [data-variant="politics"] .skeleton-panel-metric{color:#f8f6ef}
       [data-variant="politics"] .skeleton-panel-metric span{color:#9fb3c8}
       [data-variant="politics"] .skeleton-line{background:linear-gradient(90deg,rgba(224,182,78,.05) 25%,rgba(224,182,78,.10) 50%,rgba(224,182,78,.05) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
+      /* Politics desktop reserves the left category nav so the hydrated
+         #main lands at the same x/width (skeleton-parity). Inert elsewhere:
+         the row wrapper contributes no box and the nav stub stays hidden. */
+      .skeleton-mainrow{display:contents}
+      .skeleton-sidenav{display:none}
+      @media (min-width:769px){
+        [data-variant="politics"] .skeleton-mainrow{flex:1;display:flex;flex-direction:row;align-items:stretch;min-height:0;overflow:hidden}
+        [data-variant="politics"] .skeleton-mainrow .skeleton-main{flex:1 1 0;min-width:0}
+        [data-variant="politics"] .skeleton-sidenav{display:block;flex:0 0 170px;background:#121e2e;border-right:1px solid #243247}
+      }
 
       @media (max-width:768px){
         .skeleton-header{height:40px;padding:6px 10px;gap:8px}
@@ -489,6 +499,7 @@
           </div>
         </div>
         <div class="skeleton-tabs" aria-hidden="true"></div>
+        <div class="skeleton-mainrow"><div class="skeleton-sidenav" aria-hidden="true"></div>
         <div class="skeleton-main">
           <div class="skeleton-map">
             <div class="skeleton-map-bar">
@@ -517,6 +528,7 @@
             <section class="skeleton-panel" aria-label="Analysis loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">Analysis</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Preparing analysis</p><p class="skeleton-panel-copy">Analysis modules will appear after data and settings are ready.</p><div aria-hidden="true" class="skeleton-line w85"></div><div aria-hidden="true" class="skeleton-line w50"></div><div aria-hidden="true" class="skeleton-line w75"></div></div></section>
             <section class="skeleton-panel" aria-label="Updates loading"><div class="skeleton-panel-header"><h3 class="skeleton-panel-title">Updates</h3></div><div class="skeleton-panel-body"><p class="skeleton-panel-kicker">Preparing updates</p><p class="skeleton-panel-copy">Recent updates and refresh state will replace this placeholder.</p><div aria-hidden="true" class="skeleton-line w75"></div><div aria-hidden="true" class="skeleton-line w60"></div><div aria-hidden="true" class="skeleton-line"></div></div></section>
           </div>
+        </div>
         </div>
       </div>
     </div>
