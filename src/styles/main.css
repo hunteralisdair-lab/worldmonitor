@@ -5604,8 +5604,10 @@ body.playback-mode .status-dot {
 }
 
 .hotspot-marker.elevated {
-  background: var(--yellow);
-  box-shadow: 0 0 10px var(--yellow);
+  /* Shared hotspot severity ramp (hotspot-severity-colors.ts): the SVG
+     fallback previously had no orange step between yellow and red. */
+  background: #ffaa00;
+  box-shadow: 0 0 10px #ffaa00;
 }
 
 .hotspot-label {

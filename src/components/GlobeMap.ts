@@ -23,6 +23,7 @@ import { NUCLEAR_FACILITIES, SPACEPORTS, ECONOMIC_CENTERS, CRITICAL_MINERALS, UN
 import { PIPELINES } from '@/config/pipelines';
 import { t } from '@/services/i18n';
 import { SITE_VARIANT } from '@/config/variant';
+import { hotspotSeverityHex, effectiveHotspotScore } from '@/config/hotspot-severity-colors';
 import { getGlobeRenderScale, resolveGlobePixelRatio, resolvePerformanceProfile, subscribeGlobeRenderScaleChange, getGlobeTexture, GLOBE_TEXTURE_URLS, subscribeGlobeTextureChange, getGlobeVisualPreset, subscribeGlobeVisualPresetChange, type GlobeRenderScale, type GlobePerformanceProfile, type GlobeVisualPreset } from '@/services/globe-render-settings';
 import {
   getLayerExplanation,
@@ -1079,8 +1080,7 @@ export class GlobeMap {
         </div>`), "legacy direct innerHTML migration"));
       el.title = `${d.location}`;
     } else if (d._kind === 'hotspot') {
-      const colors: Record<number, string> = { 5: '#ff2020', 4: '#ff6600', 3: '#ffaa00', 2: '#ffdd00', 1: '#88ff44' };
-      const c = colors[d.escalationScore] ?? '#ffaa00';
+      const c = hotspotSeverityHex(effectiveHotspotScore(d));
       setTrustedHtml(el, trustedHtml(GlobeMap.wrapHit(`
         <div style="
           width:10px;height:10px;
@@ -1471,7 +1471,7 @@ export class GlobeMap {
              (d.eventType ? `<br><span style="opacity:.7;">${esc(d.eventType)}</span>` : '') +
              (d.fatalities ? `<br><span style="opacity:.5;">Casualties: ${d.fatalities}</span>` : '');
     } else if (d._kind === 'hotspot') {
-      const sc = ['', '#88ff44', '#ffdd00', '#ffaa00', '#ff6600', '#ff2020'][d.escalationScore] ?? '#ffaa00';
+      const sc = hotspotSeverityHex(effectiveHotspotScore(d));
       html = `<span style="color:${sc};font-weight:bold;">🎯 ${esc(d.name)}</span>` +
              `<br><span style="opacity:.7;">Escalation: ${d.escalationScore}/5</span>`;
     } else if (d._kind === 'flight') {

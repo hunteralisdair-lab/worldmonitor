@@ -144,6 +144,12 @@ import {
   setCIIGetter,
   setGeoAlertGetter,
 } from '@/services/hotspot-escalation';
+import {
+  HOTSPOT_SEVERITY_RGB,
+  HOTSPOT_SEVERITY_HEX,
+  hotspotSeverityRgb,
+  effectiveHotspotScore,
+} from '@/config/hotspot-severity-colors';
 import { getCachedCountryScoreValue } from '@/services/cached-risk-scores';
 import { getAlertsNearLocation } from '@/services/geo-convergence';
 import type { PositiveGeoEvent } from '@/services/positive-events-geo';
@@ -660,6 +666,7 @@ export class DeckGLMap {
   // CII choropleth data
   private ciiScoresMap: Map<string, { score: number; level: string }> = new Map();
   private ciiScoresVersion = 0;
+  private hotspotScoresVersion = 0;
   private resilienceScoresMap: ReturnType<typeof buildResilienceChoroplethMap> = new Map();
   private resilienceScoresVersion = 0;
 
@@ -4205,15 +4212,14 @@ export class DeckGLMap {
       data: this.hotspots,
       getPosition: (d) => [d.lon, d.lat],
       getRadius: (d) => {
-        const score = d.escalationScore || 1;
+        const score = effectiveHotspotScore(d);
         return 10000 + score * 5000;
       },
       getFillColor: (d) => {
-        const score = d.escalationScore || 1;
-        const a = Math.round((score >= 4 ? 200 : score >= 2 ? 200 : 180) * baseOpacity);
-        if (score >= 4) return [255, 68, 68, a] as [number, number, number, number];
-        if (score >= 2) return [255, 165, 0, a] as [number, number, number, number];
-        return [255, 255, 0, a] as [number, number, number, number];
+        const score = effectiveHotspotScore(d);
+        const [r, g, b] = hotspotSeverityRgb(score);
+        const a = Math.round((score >= 1.5 ? 200 : 180) * baseOpacity);
+        return [r, g, b, a] as [number, number, number, number];
       },
       radiusMinPixels: 4,
       radiusMaxPixels: maxPx,
@@ -4222,6 +4228,10 @@ export class DeckGLMap {
       getLineColor: (d) =>
         d.hasBreaking ? [255, 255, 255, 255] as [number, number, number, number] : [0, 0, 0, 0] as [number, number, number, number],
       lineWidthMinPixels: 2,
+      updateTriggers: {
+        getFillColor: [this.hotspotScoresVersion, baseOpacity],
+        getRadius: [this.hotspotScoresVersion],
+      },
     }));
 
     const highHotspots = this.hotspots.filter(h => h.level === 'high' || h.hasBreaking);
@@ -4232,7 +4242,7 @@ export class DeckGLMap {
         data: highHotspots,
         getPosition: (d) => [d.lon, d.lat],
         getRadius: (d) => {
-          const score = d.escalationScore || 1;
+          const score = effectiveHotspotScore(d);
           return 10000 + score * 5000;
         },
         radiusScale: pulse,
@@ -4242,11 +4252,14 @@ export class DeckGLMap {
         filled: false,
         getLineColor: (d) => {
           const a = Math.round(120 * baseOpacity);
-          return d.hasBreaking ? [255, 50, 50, a] as [number, number, number, number] : [255, 165, 0, a] as [number, number, number, number];
+          const [r, g, b] = d.hasBreaking
+            ? HOTSPOT_SEVERITY_RGB.critical
+            : hotspotSeverityRgb(effectiveHotspotScore(d));
+          return [r, g, b, a] as [number, number, number, number];
         },
         lineWidthMinPixels: 1.5,
         pickable: false,
-        updateTriggers: { radiusScale: this.pulseTime },
+        updateTriggers: { radiusScale: this.pulseTime, getLineColor: [this.hotspotScoresVersion], getRadius: [this.hotspotScoresVersion] },
       }));
 
     }
@@ -5904,9 +5917,9 @@ export class DeckGLMap {
               ...resilienceLegendItems,
             ]
             : [
-              { shape: shapes.circle('rgb(255, 68, 68)'), label: t('components.deckgl.legend.highAlert'), layerKey: 'hotspots' },
-              { shape: shapes.circle('rgb(255, 165, 0)'), label: t('components.deckgl.legend.elevated'), layerKey: 'hotspots' },
-              { shape: shapes.circle(isLight ? 'rgb(180, 120, 0)' : 'rgb(255, 255, 0)'), label: t('components.deckgl.legend.monitoring'), layerKey: 'hotspots' },
+              { shape: shapes.circle(HOTSPOT_SEVERITY_HEX.critical), label: t('components.deckgl.legend.highAlert'), layerKey: 'hotspots' },
+              { shape: shapes.circle(HOTSPOT_SEVERITY_HEX.elevated), label: t('components.deckgl.legend.elevated'), layerKey: 'hotspots' },
+              { shape: shapes.circle(isLight ? 'rgb(180, 120, 0)' : HOTSPOT_SEVERITY_HEX.watch), label: t('components.deckgl.legend.monitoring'), layerKey: 'hotspots' },
               { shape: shapes.circle('rgb(255, 100, 100)'), label: t('components.deckgl.legend.conflict'), layerKey: 'conflicts' },
               { shape: shapes.triangle('rgb(68, 136, 255)'), label: t('components.deckgl.legend.base'), layerKey: 'bases' },
               { shape: shapes.hexagon(isLight ? 'rgb(180, 120, 0)' : 'rgb(255, 220, 0)'), label: t('components.deckgl.legend.nuclear'), layerKey: 'nuclear' },
@@ -7171,6 +7184,21 @@ export class DeckGLMap {
       const velocity = matchCount > 0 ? matchCount / 2 : 0; // 2 hour window
       updateHotspotEscalation(h.id, matchCount, h.hasBreaking || false, velocity);
     });
+
+    // Copy the live blended score onto each hotspot so the layer colors by
+    // actual news-driven danger, not just the curated baseline. The version
+    // counter feeds updateTriggers (same pattern as ciiScoresVersion) —
+    // without it deck.gl never re-evaluates getFillColor on same-array data.
+    let scoresChanged = false;
+    this.hotspots.forEach(h => {
+      const live = getHotspotEscalation(h.id)?.combinedScore;
+      const next = typeof live === 'number' ? live : undefined;
+      if (h.liveEscalationScore !== next) {
+        h.liveEscalationScore = next;
+        scoresChanged = true;
+      }
+    });
+    if (scoresChanged) this.hotspotScoresVersion++;
 
     this.render();
     this.syncPulseAnimation();

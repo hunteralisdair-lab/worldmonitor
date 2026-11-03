@@ -10,6 +10,7 @@ import type { TechHubActivity } from '@/services/tech-activity';
 import type { GeoHubActivity } from '@/services/geo-activity';
 import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
 import { isMobileDevice, getCSSColor } from '@/utils';
+import { HOTSPOT_SEVERITY_HEX } from '@/config/hotspot-severity-colors';
 import { TransitChart } from '@/utils/transit-chart';
 import { HS2RingChart } from '@/utils/hs2-ring-chart';
 import type { GetChokepointStatusResponse, TransitDayCount } from '@/services/supply-chain';
@@ -968,13 +969,14 @@ export class MapPopup {
     const dynamicScore = getHotspotEscalation(hotspot.id);
     const change24h = getEscalationChange24h(hotspot.id);
 
-    // Escalation score display
+    // Escalation score display — same yellow→orange→red ramp as the map
+    // markers (hotspot-severity-colors.ts), so popup and dot always agree.
     const escalationColors: Record<number, string> = {
-      1: getCSSColor('--semantic-normal'),
-      2: getCSSColor('--semantic-normal'),
-      3: getCSSColor('--semantic-elevated'),
-      4: getCSSColor('--semantic-high'),
-      5: getCSSColor('--semantic-critical'),
+      1: HOTSPOT_SEVERITY_HEX.stable,
+      2: HOTSPOT_SEVERITY_HEX.watch,
+      3: HOTSPOT_SEVERITY_HEX.elevated,
+      4: HOTSPOT_SEVERITY_HEX.high,
+      5: HOTSPOT_SEVERITY_HEX.critical,
     };
     const escalationLabels: Record<number, string> = {
       1: t('popups.hotspot.levels.stable'),

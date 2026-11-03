@@ -279,6 +279,10 @@ export interface Hotspot {
   status?: string;
   // Escalation indicators (Quick Win #2)
   escalationScore?: 1 | 2 | 3 | 4 | 5;
+  /** Live blended score (shared/analysis-hotspot-escalation combinedScore),
+   *  copied onto the hotspot each news pass so map layers can grade on it.
+   *  Fractional 1–5; falls back to the curated escalationScore when unset. */
+  liveEscalationScore?: number;
   escalationTrend?: EscalationTrend;
   escalationIndicators?: string[];
   // Historical context (Quick Win #4)
