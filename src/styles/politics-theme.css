@@ -1,0 +1,141 @@
+/* ============================================================
+   Politics Variant Theme — Statecraft
+   Warm umber darks, brass/gold accents, parchment light mode.
+   Alert/severity semantics stay untouched: this is a serious
+   monitoring variant, warnings must still read as warnings.
+   Unlayered CSS — wins over main.css which is wrapped in
+   @layer base by base-layer.css (@import ... layer(base)).
+   ============================================================ */
+
+/* ---------- Politics Dark Mode (default + explicit dark) ---------- */
+:root[data-variant="politics"],
+:root[data-variant="politics"][data-theme="dark"] {
+  /* Backgrounds — warm charcoal/umber instead of cold black */
+  --bg: #16110c;
+  --bg-secondary: #1b1510;
+  --surface: #201a13;
+  --surface-hover: #292118;
+  --surface-active: #2e2517;
+
+  /* Borders — oak and brass tints */
+  --border: #382d1f;
+  --border-strong: #52422c;
+  --border-subtle: #261e14;
+
+  /* Text — parchment-tinted off-whites */
+  --text: #efe7d8;
+  --text-secondary: #d8cdb8;
+  --text-dim: #a2947c;
+  --text-muted: #7d7260;
+  --text-faint: #635a4b;
+  --text-ghost: #4a4337;
+  --accent: #e0b64e;
+
+  /* Overlays & shadows — gold-tinted */
+  --overlay-subtle: rgba(224, 182, 78, 0.04);
+  --overlay-light: rgba(224, 182, 78, 0.06);
+  --overlay-medium: rgba(224, 182, 78, 0.10);
+  --overlay-heavy: rgba(224, 182, 78, 0.18);
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --darken-light: rgba(0, 0, 0, 0.15);
+  --darken-medium: rgba(0, 0, 0, 0.2);
+  --darken-heavy: rgba(0, 0, 0, 0.3);
+
+  /* Scrollbar */
+  --scrollbar-thumb: #3e3424;
+  --scrollbar-thumb-hover: #5a4c33;
+
+  /* Input */
+  --input-bg: #221b12;
+
+  /* Panels */
+  --panel-bg: #1d1710;
+  --panel-border: #382d1f;
+
+  /* Map — warm dark earth, brass strokes (was green-on-black radar) */
+  --map-bg: #120d08;
+  --map-grid: #2b2214;
+  --map-country: #241b10;
+  --map-stroke: #6b5527;
+
+  /* Status indicators — cached reads as brass */
+  --status-cached: #e0b64e;
+
+  /* Legacy color aliases — warm the yellow to the brand gold */
+  --yellow: #e0b64e;
+}
+
+/* ---------- Politics Light Mode — parchment & ink ---------- */
+:root[data-variant="politics"][data-theme="light"] {
+  /* Backgrounds */
+  --bg: #f5efe3;
+  --bg-secondary: #efe7d6;
+  --surface: #fbf7ee;
+  --surface-hover: #f1ead9;
+  --surface-active: #e8dfc9;
+
+  /* Borders */
+  --border: #d9cdb2;
+  --border-strong: #bfb093;
+  --border-subtle: #e9e0cc;
+
+  /* Text — ink on parchment */
+  --text: #2c2518;
+  --text-secondary: #4a4132;
+  --text-dim: #6e6450;
+  --text-muted: #8c8169;
+  --text-faint: #a79b82;
+  --text-ghost: #c2b89f;
+  --accent: #7c5e14;
+
+  /* Overlays & shadows */
+  --overlay-subtle: rgba(124, 94, 20, 0.04);
+  --overlay-light: rgba(124, 94, 20, 0.06);
+  --overlay-medium: rgba(124, 94, 20, 0.10);
+  --overlay-heavy: rgba(124, 94, 20, 0.16);
+  --shadow-color: rgba(90, 70, 30, 0.14);
+  --darken-light: rgba(90, 70, 30, 0.06);
+  --darken-medium: rgba(90, 70, 30, 0.10);
+  --darken-heavy: rgba(90, 70, 30, 0.16);
+
+  /* Scrollbar */
+  --scrollbar-thumb: #c4b89c;
+  --scrollbar-thumb-hover: #a99b7d;
+
+  /* Input */
+  --input-bg: #efe8d7;
+
+  /* Panels */
+  --panel-bg: #fbf7ee;
+  --panel-border: #d9cdb2;
+
+  /* Map — aged-atlas parchment */
+  --map-bg: #e9e0c9;
+  --map-grid: #d6c9a8;
+  --map-country: #ddd1b4;
+  --map-stroke: #a08c5a;
+
+  /* Status indicators */
+  --status-cached: #a97f10;
+
+  /* Legacy color aliases — darker variants for parchment backgrounds */
+  --yellow: #a97f10;
+}
+
+/* ---------- Header brand mark (mounted only on politics) ---------- */
+.brand-mark-politics {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 2px;
+  vertical-align: -3px;
+  background: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='%23e0b64e'><path d='M50 8 L92 31 L8 31 Z'/><rect x='13' y='35' width='74' height='6' rx='1.5'/><rect x='18' y='47' width='10' height='28' rx='1.5'/><rect x='36.5' y='47' width='10' height='28' rx='1.5'/><rect x='55' y='47' width='10' height='28' rx='1.5'/><rect x='73.5' y='47' width='10' height='28' rx='1.5'/><rect x='13' y='81' width='74' height='6' rx='1.5'/><rect x='7' y='91' width='86' height='6' rx='1.5'/></g></svg>") center/contain no-repeat;
+}
+:root[data-variant="politics"][data-theme="light"] .brand-mark-politics {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='%237c5e14'><path d='M50 8 L92 31 L8 31 Z'/><rect x='13' y='35' width='74' height='6' rx='1.5'/><rect x='18' y='47' width='10' height='28' rx='1.5'/><rect x='36.5' y='47' width='10' height='28' rx='1.5'/><rect x='55' y='47' width='10' height='28' rx='1.5'/><rect x='73.5' y='47' width='10' height='28' rx='1.5'/><rect x='13' y='81' width='74' height='6' rx='1.5'/><rect x='7' y='91' width='86' height='6' rx='1.5'/></g></svg>");
+}
+
+/* Gold active state for the politics left nav, matching the brand */
+:root[data-variant="politics"] .side-panel-nav-chip.active {
+  color: var(--accent);
+}

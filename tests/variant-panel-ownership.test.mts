@@ -156,6 +156,40 @@ describe('variant panel ownership', () => {
     assert.deepEqual(persisted, result);
   });
 
+  it('restores variant-owned panels that a prior transition disabled, not user hides', () => {
+    // Leg 1: leaving the variant that owns `unique` marks it variantGated.
+    const afterLeave = applyVariantPanelLayoutTransition({
+      currentVariant: 'full',
+      panelSettings: {
+        unique: { name: 'Unique', enabled: true },
+        userHidden: { name: 'User hidden', enabled: false },
+        shared: { name: 'Shared', enabled: true },
+      },
+      variantPanelKeys: new Set(['shared']),
+      isDynamicPanel: () => false,
+      getDefaultPanel: (key) => ({ name: key, enabled: true }),
+      persistPanels: () => {},
+      persistAppliedVariant: () => {},
+    });
+    assert.equal(afterLeave.unique?.enabled, false);
+    assert.equal(afterLeave.unique?.variantGated, true);
+    assert.equal(afterLeave.userHidden?.variantGated, undefined, 'already-hidden panels carry no marker');
+
+    // Leg 2: returning to the owning variant re-enables only the gated panel.
+    const afterReturn = applyVariantPanelLayoutTransition({
+      currentVariant: 'politics',
+      panelSettings: afterLeave,
+      variantPanelKeys: new Set(['unique', 'userHidden', 'shared']),
+      isDynamicPanel: () => false,
+      getDefaultPanel: (key) => ({ name: key, enabled: true }),
+      persistPanels: () => {},
+      persistAppliedVariant: () => {},
+    });
+    assert.equal(afterReturn.unique?.enabled, true, 'transition-disabled panel comes back');
+    assert.equal(afterReturn.unique?.variantGated, undefined);
+    assert.equal(afterReturn.userHidden?.enabled, false, 'a deliberate user hide stays hidden');
+  });
+
   it('does not advance the applied marker when panel persistence fails', () => {
     const events: string[] = [];
     const result = applyVariantPanelLayoutTransition({

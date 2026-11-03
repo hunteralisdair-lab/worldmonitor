@@ -649,6 +649,14 @@ export interface PanelConfig {
    * ordinary panels disabled by the free panel-count cap.
    */
   proGated?: boolean;
+  /**
+   * Set by `applyVariantPanelLayoutTransition` when a variant switch — not the
+   * user — turned this panel off (the key belongs to another variant's
+   * defaults). Lets a later switch back to the owning variant restore the
+   * panel instead of leaving it permanently disabled, without overriding a
+   * deliberate user hide (user toggles clear the marker).
+   */
+  variantGated?: boolean;
 }
 
 export interface MapLayers {

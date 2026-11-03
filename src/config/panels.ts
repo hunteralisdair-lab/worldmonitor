@@ -1401,6 +1401,7 @@ export function enforceFreePanelLimit(
 export function userSetPanelEnabled(config: PanelConfig, enabled: boolean): void {
   config.enabled = enabled;
   delete config.proGated;
+  delete config.variantGated;
 }
 
 /**

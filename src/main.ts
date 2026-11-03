@@ -23,6 +23,11 @@ if (SITE_VARIANT === 'happy') {
   void loadVariantThemeStylesheet('happy', () => import('./styles/happy-theme.css'));
 }
 
+if (SITE_VARIANT === 'politics') {
+  // Same contract as the happy theme above: fire-and-forget, rejection consumed.
+  void loadVariantThemeStylesheet('politics', () => import('./styles/politics-theme.css'));
+}
+
 // Activate the deferred dashboard app stylesheet. The build
 // (deferDashboardStylesheetLinks in vite.config.ts) emits the large dashboard
 // CSS as <link media="print" data-wm-deferred-style="dashboard"> + a <noscript>

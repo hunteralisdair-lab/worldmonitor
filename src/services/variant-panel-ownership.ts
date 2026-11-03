@@ -122,11 +122,28 @@ export function applyVariantPanelLayoutTransition(
 
   for (const [key, config] of Object.entries(next)) {
     if (!options.variantPanelKeys.has(key) && !options.isDynamicPanel(key)) {
+      const wasEnabled = config.enabled;
       userSetPanelEnabled(config, false);
+      // Mark that THIS transition, not the user, turned the panel off — the
+      // same distinction proGated draws for the free-tier gate. Set after
+      // userSetPanelEnabled (which clears gate markers) and only when the
+      // panel was actually on, so a prior deliberate hide stays a hide.
+      if (wasEnabled) config.variantGated = true;
     }
   }
   for (const key of options.variantPanelKeys) {
-    if (!(key in next)) next[key] = { ...options.getDefaultPanel(key) };
+    const existing = next[key];
+    if (!existing) {
+      next[key] = { ...options.getDefaultPanel(key) };
+      continue;
+    }
+    // Returning to the variant that owns this key: undo a disable a previous
+    // transition made. Without this, variant round-trips permanently lose
+    // every panel unique to the revisited variant.
+    if (existing.variantGated) {
+      delete existing.variantGated;
+      existing.enabled = true;
+    }
   }
 
   try {
