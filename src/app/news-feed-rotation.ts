@@ -60,6 +60,61 @@ export function selectRotatingFeedWindow<T>(feeds: readonly T[], maxFeeds: numbe
 }
 
 /**
+ * Bias-balanced variant of `selectRotatingFeedWindow` for the politics
+ * variant's PRESET categories, where per-feed fallback is the steady state
+ * (the politics-only categories are never in the server digest) and the feed
+ * lists mix high-volume centrist outlets with lower-volume partisan ones. A
+ * consecutive window — let alone the fixed prefix — can spend whole cycles
+ * inside one editorial side, so the perspective lens's Left/Right ranks have
+ * nothing to promote (every UK right-leaning source sat in feeds 4..N,
+ * unreached on every load).
+ *
+ * Feeds are grouped by `bucketOf` (the caller maps source bias onto
+ * left-ish / center / right-ish). Each cycle spends the SAME `maxFeeds`
+ * budget, round-robining one pick per bucket and rotating within each bucket
+ * by `cycle`, so every cycle touches every represented side and a bucket of
+ * length L is fully covered in L cycles. Deterministic and duplicate-free:
+ * identical inputs always select the identical window.
+ */
+export function selectBiasBalancedFeedWindow<T>(
+  feeds: readonly T[],
+  maxFeeds: number,
+  cycle: number,
+  bucketOf: (feed: T) => number,
+): T[] {
+  const total = feeds.length;
+  const size = Number.isFinite(maxFeeds) ? Math.floor(maxFeeds) : 0;
+  if (total === 0 || size <= 0) return [];
+  if (total <= size) return [...feeds];
+
+  const safeCycle = Number.isFinite(cycle) && cycle >= 0 ? Math.trunc(cycle) : 0;
+
+  const groups = new Map<number, T[]>();
+  for (const feed of feeds) {
+    const id = bucketOf(feed);
+    const bucket = groups.get(id);
+    if (bucket) bucket.push(feed);
+    else groups.set(id, [feed]);
+  }
+  const buckets = [...groups.entries()].sort((a, b) => a[0] - b[0]).map(([, items]) => items);
+
+  const window: T[] = [];
+  const taken = buckets.map(() => 0);
+  let slot = 0;
+  while (window.length < size && window.length < total) {
+    const bucketIndex = slot % buckets.length;
+    const bucket = buckets[bucketIndex]!;
+    const consumed = taken[bucketIndex]!;
+    if (consumed < bucket.length) {
+      window.push(bucket[(safeCycle + consumed) % bucket.length]!);
+      taken[bucketIndex] = consumed + 1;
+    }
+    slot += 1;
+  }
+  return window;
+}
+
+/**
  * The cycle to persist after `selectRotatingFeedWindow` has been called.
  *
  * Wraps at `feedCount` because `start` is `(cycle * cap) % feedCount` — the
