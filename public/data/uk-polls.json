@@ -1,0 +1,123 @@
+{
+  "updatedAt": "2026-11-03T17:05:30.033Z",
+  "source": "Wikipedia: Opinion polling for the next United Kingdom general election (CC BY-SA; aggregates published polls from all pollsters)",
+  "ge2024": {
+    "con": 23.7,
+    "lab": 33.7,
+    "libdem": 12.2,
+    "snp": 2.5,
+    "green": 6.7,
+    "reform": 14.3
+  },
+  "averageWindow": 10,
+  "average": {
+    "con": 21.8,
+    "lab": 29.2,
+    "libdem": 9.4,
+    "snp": 2.7,
+    "green": 9,
+    "reform": 22.2
+  },
+  "polls": [
+    {
+      "dates": "1–2 Nov",
+      "pollster": "YouGov",
+      "con": 24,
+      "lab": 26,
+      "libdem": 11,
+      "snp": 3,
+      "green": 10,
+      "reform": 21
+    },
+    {
+      "dates": "30 Oct – 2 Nov",
+      "pollster": "Deltapoll",
+      "con": 23,
+      "lab": 30,
+      "libdem": 7,
+      "snp": 3,
+      "green": 8,
+      "reform": 25
+    },
+    {
+      "dates": "30 Oct – 1 Nov",
+      "pollster": "Freshwater Strategy",
+      "con": 22,
+      "lab": 30,
+      "libdem": 10,
+      "snp": 2,
+      "green": 10,
+      "reform": 22
+    },
+    {
+      "dates": "28–30 Oct",
+      "pollster": "Opinium",
+      "con": 20,
+      "lab": 30,
+      "libdem": 10,
+      "snp": 3,
+      "green": 8,
+      "reform": 22
+    },
+    {
+      "dates": "28–29 Oct",
+      "pollster": "Find Out Now",
+      "con": 21,
+      "lab": 28,
+      "libdem": 10,
+      "snp": 3,
+      "green": 11,
+      "reform": 20
+    },
+    {
+      "dates": "28–29 Oct",
+      "pollster": "BMG Research",
+      "con": 21,
+      "lab": 31,
+      "libdem": 8,
+      "snp": 2,
+      "green": 8,
+      "reform": 22
+    },
+    {
+      "dates": "25–26 Oct",
+      "pollster": "YouGov",
+      "con": 22,
+      "lab": 27,
+      "libdem": 11,
+      "snp": 2,
+      "green": 10,
+      "reform": 20
+    },
+    {
+      "dates": "23–26 Oct",
+      "pollster": "More in Common",
+      "con": 24,
+      "lab": 28,
+      "libdem": 11,
+      "snp": 2,
+      "green": 7,
+      "reform": 23
+    },
+    {
+      "dates": "23–26 Oct",
+      "pollster": "Deltapoll",
+      "con": 21,
+      "lab": 32,
+      "libdem": 7,
+      "snp": 4,
+      "green": 8,
+      "reform": 25
+    },
+    {
+      "dates": "21–23 Oct",
+      "pollster": "Opinium",
+      "con": 20,
+      "lab": 30,
+      "libdem": 9,
+      "snp": 3,
+      "green": 10,
+      "reform": 22
+    }
+  ]
+}

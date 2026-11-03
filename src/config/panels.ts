@@ -1128,31 +1128,37 @@ const POLITICS_PANELS: Record<string, PanelConfig> = {
   us: { name: 'United States', enabled: true, priority: 1 },
   europe: { name: 'Europe', enabled: true, priority: 1 },
   middleeast: { name: 'Middle East', enabled: true, priority: 1 },
-  africa: { name: 'Africa', enabled: true, priority: 2 },
-  latam: { name: 'Latin America', enabled: true, priority: 2 },
-  asia: { name: 'Asia-Pacific', enabled: true, priority: 2 },
+  // UK-focus: world-intelligence and far-region panels ship default-OFF —
+  // re-enableable in Settings → Panels, but the variant boots UK-first.
+  africa: { name: 'Africa', enabled: false, priority: 2 },
+  latam: { name: 'Latin America', enabled: false, priority: 2 },
+  asia: { name: 'Asia-Pacific', enabled: false, priority: 2 },
   // Politics
   'uk-politics': { name: 'UK Politics', enabled: true, priority: 1 },
-  gov: { name: 'Government', enabled: true, priority: 1 },
-  thinktanks: { name: 'Think Tanks', enabled: true, priority: 1 },
+  westminster: { name: 'Westminster Seats', enabled: true, priority: 1 },
+  'commons-votes': { name: 'Commons Divisions', enabled: true, priority: 1 },
+  'uk-polls': { name: 'UK Poll Tracker', enabled: true, priority: 1 },
+  'uk-gov': { name: 'UK Government', enabled: true, priority: 1 },
+  'uk-thinktanks': { name: 'UK Think Tanks', enabled: true, priority: 1 },
   polymarket: { name: 'Predictions', enabled: true, priority: 1 },
-  cii: { name: 'Country Instability', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
-  'strategic-risk': { name: 'Strategic Risk Overview', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
-  'ucdp-events': { name: 'UCDP Conflict Events', enabled: true, priority: 2 },
-  displacement: { name: 'UNHCR Displacement', enabled: true, priority: 2 },
+  cii: { name: 'Country Instability', enabled: false, priority: 2, ...(_desktop && { premium: 'enhanced' as const }) },
+  'strategic-risk': { name: 'Strategic Risk Overview', enabled: false, priority: 2, ...(_desktop && { premium: 'enhanced' as const }) },
+  'ucdp-events': { name: 'UCDP Conflict Events', enabled: false, priority: 2 },
+  displacement: { name: 'UNHCR Displacement', enabled: false, priority: 2 },
   // Social
   social: { name: 'Society', enabled: true, priority: 1 },
+  petitions: { name: 'Trending Petitions', enabled: true, priority: 1 },
   // Environmental
   environment: { name: 'Environment', enabled: true, priority: 1 },
-  'climate-news': { name: 'Climate News', enabled: true, priority: 2 },
+  'climate-news': { name: 'Climate News', enabled: false, priority: 2 },
   // Economical
   'econ-news': { name: 'Economy', enabled: true, priority: 1 },
   markets: { name: 'Markets', enabled: true, priority: 2 },
-  'trade-policy': { name: 'Trade Policy', enabled: true, priority: 2, premium: 'locked' as const },
-  'sanctions-pressure': { name: 'Sanctions Pressure', enabled: true, priority: 2 },
+  'trade-policy': { name: 'Trade Policy', enabled: false, priority: 2, premium: 'locked' as const },
+  'sanctions-pressure': { name: 'Sanctions Pressure', enabled: false, priority: 2 },
   // Utilities
   monitors: { name: 'My Monitors', enabled: true, priority: 2 },
-  'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
+  'world-clock': { name: 'World Clock', enabled: false, priority: 2 },
 };
 
 const POLITICS_MAP_LAYERS: MapLayers = { ...FULL_MAP_LAYERS, politicalControl: true };
@@ -1644,7 +1650,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   polSocial: {
     labelKey: 'header.panelCatPolSocial',
-    panelKeys: ['social'],
+    panelKeys: ['social', 'petitions'],
     variants: ['politics'],
   },
   polEnvironment: {
@@ -1659,7 +1665,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   polPolitics: {
     labelKey: 'header.panelCatPolPolitics',
-    panelKeys: ['uk-politics', 'gov', 'thinktanks', 'polymarket', 'cii', 'strategic-risk', 'ucdp-events', 'displacement'],
+    panelKeys: ['uk-politics', 'westminster', 'commons-votes', 'uk-polls', 'uk-gov', 'uk-thinktanks', 'polymarket', 'cii', 'strategic-risk', 'ucdp-events', 'displacement'],
     variants: ['politics'],
   },
 

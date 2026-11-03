@@ -997,8 +997,25 @@ const POLITICS_FEEDS: Record<string, Feed[]> = {
   asia: FULL_FEEDS.asia!,
   latam: FULL_FEEDS.latam!,
   crisis: FULL_FEEDS.crisis!,
-  gov: FULL_FEEDS.gov!,
-  thinktanks: FULL_FEEDS.thinktanks!,
+  // UK-focused replacements for the full variant's US-centric gov/thinktanks.
+  // New keys (not reused ones) so they take the per-feed fallback path — the
+  // digest would otherwise serve the full variant's US content for them.
+  'uk-gov': [
+    { name: 'GOV.UK Announcements',   url: rss('https://www.gov.uk/search/news-and-communications.atom') },
+    { name: 'No. 10 Downing Street',  url: rss('https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=prime-ministers-office-10-downing-street') },
+    { name: 'HM Treasury',            url: rss('https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=hm-treasury') },
+    { name: 'UK Parliament',          url: rss('https://news.google.com/rss/search?q=site:parliament.uk+when:2d&hl=en-GB&gl=GB&ceid=GB:en') },
+    { name: 'Home Office',            url: rss('https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=home-office') },
+  ],
+  'uk-thinktanks': [
+    { name: 'Institute for Fiscal Studies', url: rss('https://news.google.com/rss/search?q=site:ifs.org.uk+when:7d&hl=en-GB&gl=GB&ceid=GB:en') },
+    { name: 'Institute for Government',     url: rss('https://news.google.com/rss/search?q=site:instituteforgovernment.org.uk+when:7d&hl=en-GB&gl=GB&ceid=GB:en') },
+    { name: 'Resolution Foundation',        url: rss('https://news.google.com/rss/search?q=site:resolutionfoundation.org+when:7d&hl=en-GB&gl=GB&ceid=GB:en') },
+    { name: 'Chatham House',                url: rss('https://news.google.com/rss/search?q=site:chathamhouse.org+when:7d&hl=en-GB&gl=GB&ceid=GB:en') },
+    { name: 'IPPR',                         url: rss('https://news.google.com/rss/search?q=site:ippr.org+when:7d&hl=en-GB&gl=GB&ceid=GB:en') },
+    { name: 'Policy Exchange',              url: rss('https://news.google.com/rss/search?q=site:policyexchange.org.uk+when:7d&hl=en-GB&gl=GB&ceid=GB:en') },
+    { name: 'YouGov',                       url: rss('https://news.google.com/rss/search?q=site:yougov.co.uk+when:7d&hl=en-GB&gl=GB&ceid=GB:en') },
+  ],
   'uk-politics': [
     { name: 'BBC Politics',          url: rss('https://feeds.bbci.co.uk/news/politics/rss.xml') },
     { name: 'Guardian Politics',     url: rss('https://www.theguardian.com/politics/rss') },

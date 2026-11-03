@@ -360,3 +360,105 @@
 @media (max-width: 768px) {
   :root[data-variant="politics"] .regional-stories-rail { display: none; }
 }
+
+/* ---------- UK widgets: Westminster Seats / Petitions / Divisions / Polls ---------- */
+:root[data-variant="politics"] .ws-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+:root[data-variant="politics"] .ws-bar-seg { display: block; height: 100%; }
+:root[data-variant="politics"] .ws-majority-note {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin: 4px 0 8px;
+}
+:root[data-variant="politics"] .ws-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+:root[data-variant="politics"] .ws-row:last-child { border-bottom: none; }
+:root[data-variant="politics"] .ws-dot {
+  width: 8px; height: 8px; border-radius: 2px; flex: none;
+}
+:root[data-variant="politics"] .ws-party { flex: 1; color: var(--text-secondary); }
+:root[data-variant="politics"] .ws-seats { font-weight: 600; color: var(--text); }
+:root[data-variant="politics"] .ws-seats.ws-majority { color: var(--accent); }
+:root[data-variant="politics"] .ws-footnote,
+:root[data-variant="politics"] .poll-footnote {
+  margin-top: 8px;
+  font-size: 9px;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+:root[data-variant="politics"] .petition-row,
+:root[data-variant="politics"] .division-row {
+  display: block;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  text-decoration: none;
+  color: var(--text);
+}
+:root[data-variant="politics"] .petition-row:last-child,
+:root[data-variant="politics"] .division-row:last-child { border-bottom: none; }
+:root[data-variant="politics"] .petition-action,
+:root[data-variant="politics"] .division-title {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  line-height: 1.35;
+}
+:root[data-variant="politics"] .petition-row:hover .petition-action,
+:root[data-variant="politics"] .division-row:hover .division-title { color: var(--accent); }
+:root[data-variant="politics"] .petition-meta,
+:root[data-variant="politics"] .division-meta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+:root[data-variant="politics"] .petition-count { color: var(--accent); font-weight: 600; }
+:root[data-variant="politics"] .petition-gauge {
+  height: 3px;
+  margin-top: 4px;
+  background: var(--overlay-subtle);
+  border-radius: 2px;
+  overflow: hidden;
+}
+:root[data-variant="politics"] .petition-gauge span {
+  display: block; height: 100%; background: var(--accent); border-radius: 2px;
+}
+:root[data-variant="politics"] .division-ayes { color: var(--semantic-healthy, #4ade80); }
+:root[data-variant="politics"] .division-noes { color: var(--semantic-critical, #ff4444); }
+:root[data-variant="politics"] .division-result { margin-left: auto; font-weight: 600; text-transform: uppercase; font-size: 8px; letter-spacing: 0.5px; }
+:root[data-variant="politics"] .division-result.passed { color: var(--semantic-healthy, #4ade80); }
+:root[data-variant="politics"] .division-result.rejected { color: var(--semantic-critical, #ff4444); }
+
+:root[data-variant="politics"] .poll-row {
+  display: grid;
+  grid-template-columns: 76px 1fr 44px 36px;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 11px;
+}
+:root[data-variant="politics"] .poll-party { color: var(--text-secondary); }
+:root[data-variant="politics"] .poll-bar {
+  height: 10px;
+  background: var(--overlay-subtle);
+  border-radius: 2px;
+  overflow: hidden;
+}
+:root[data-variant="politics"] .poll-bar span { display: block; height: 100%; border-radius: 2px; }
+:root[data-variant="politics"] .poll-share { text-align: right; font-weight: 600; color: var(--text); }
+:root[data-variant="politics"] .poll-delta { text-align: right; font-size: 10px; color: var(--text-dim); }
+:root[data-variant="politics"] .poll-delta.up { color: var(--semantic-healthy, #4ade80); }
+:root[data-variant="politics"] .poll-delta.down { color: var(--semantic-critical, #ff4444); }
