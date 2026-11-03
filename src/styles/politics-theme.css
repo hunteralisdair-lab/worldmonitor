@@ -139,3 +139,44 @@
 :root[data-variant="politics"] .side-panel-nav-chip.active {
   color: var(--accent);
 }
+
+/* ---------- Broadsheet typography — serif headlines, mono data ---------- */
+/* Transitional-serif stack: Charter/Iowan on macOS, Palatino Linotype and
+   Georgia on Windows. Dense data grids, metrics and timestamps stay on the
+   existing mono/body stack — only masthead, section and headline text turn. */
+:root[data-variant="politics"] {
+  --font-serif: Charter, 'Bitstream Charter', 'Iowan Old Style',
+    'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+}
+
+/* Masthead: header wordmark + mobile menu title. Uppercase serif wants far
+   less tracking than the mono wordmark's 2px. */
+:root[data-variant="politics"] .logo,
+:root[data-variant="politics"] .logo-mobile,
+:root[data-variant="politics"] .mobile-menu-title {
+  font-family: var(--font-serif);
+  letter-spacing: 1px;
+}
+
+/* Panel headers read as section mastheads. nowrap+ellipsis on .panel-title
+   makes the 1px size bump layout-safe. */
+:root[data-variant="politics"] .panel-title {
+  font-family: var(--font-serif);
+  font-size: calc(12px * var(--wm-panel-effective-scale, 1));
+  letter-spacing: 0.8px;
+}
+
+/* Headlines: news list items and map-popup/signal article titles. Serif
+   glyphs run smaller than the mono at equal size, so bump a point. */
+:root[data-variant="politics"] .item-title,
+:root[data-variant="politics"] .news-title {
+  font-family: var(--font-serif);
+  font-size: calc(13px * var(--wm-panel-effective-scale, 1));
+  line-height: 1.35;
+}
+
+/* Category navigation (desktop sidebar + mobile chips) as section headers */
+:root[data-variant="politics"] .side-panel-nav-chip,
+:root[data-variant="politics"] .mobile-panel-nav-chip {
+  font-family: var(--font-serif);
+}
