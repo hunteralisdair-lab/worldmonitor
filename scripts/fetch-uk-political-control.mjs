@@ -16,6 +16,11 @@
  * July-2024 names); the script fails loudly if any constituency cannot
  * be matched so stale output is never written silently.
  *
+ * Each constituency also carries a `towns` gazetteer: sizable settlements
+ * (Natural Earth populated places, public domain) assigned by point-in-
+ * polygon against the constituency boundaries, so the regional-stories
+ * matcher can catch headlines that name a town rather than the seat or MP.
+ *
  * Usage: node scripts/fetch-uk-political-control.mjs
  */
 
@@ -102,7 +107,158 @@ async function fetchCurrentMembers() {
   return byName;
 }
 
-const [boundaries, members] = await Promise.all([fetchBoundaries(), fetchCurrentMembers()]);
+// ONS Index of Place Names (GB): built-up areas with population counts.
+// 2016 vintage is fine for a gazetteer — towns don't move, and constituency
+// assignment is our own point-in-polygon against the July-2024 boundaries.
+const IPN_BASE =
+  'https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/'
+  + 'Index_of_Place_Names_in_Great_Britain_July_2016_2022/FeatureServer/0/query';
+const TOWN_MIN_POPULATION = 10000;
+const TOWN_MIN_NAME_LENGTH = 4; // "Ely"/"Rye" are headline-matching noise
+const TOWNS_PER_CONSTITUENCY = 8;
+// Towns whose names collide with world-famous places or capitalized common
+// words, so even word-boundary case-sensitive matching false-positives:
+// "talks with Washington", "trade Deal", "Downing Street", "for Sale",
+// "in March", Boston/Perth/Hamilton abroad, "Wells Fargo".
+const AMBIGUOUS_TOWN_NAMES = new Set([
+  'Washington', 'Boston', 'Perth', 'Hamilton', 'Deal', 'Sale', 'March',
+  'Street', 'Ware', 'Wells',
+]);
+
+/** UK settlements worth matching headlines against: name + point + population. */
+async function fetchUkTowns() {
+  const towns = [];
+  const pageSize = 2000;
+  for (let offset = 0; ; offset += pageSize) {
+    const params = new URLSearchParams({
+      // BUA = built-up area (England/Wales): the settlement itself, not the
+      // ward of the same name (wards like "Abbey" would be matching noise).
+      // BUASD covers towns inside big conurbations (Oldham lives only as a
+      // sub-division of the Greater Manchester BUA). Scottish settlements
+      // carry populations on PAR rows instead; the population floor keeps
+      // English micro-parishes out.
+      where: "descnm IN ('BUA', 'BUASD', 'PAR')",
+      outFields: 'place15nm,popcnt,lat,long_',
+      returnGeometry: 'false',
+      f: 'json',
+      resultOffset: String(offset),
+      resultRecordCount: String(pageSize),
+      orderByFields: 'OBJECTID_1',
+    });
+    const page = await fetchJson(`${IPN_BASE}?${params}`);
+    const rows = page.features ?? [];
+    for (const row of rows) {
+      const a = row.attributes ?? {};
+      const pop = parseInt(a.popcnt, 10) || 0;
+      const name = typeof a.place15nm === 'string' ? a.place15nm.replace(/\s*\(.*\)$/, '').trim() : '';
+      if (pop < TOWN_MIN_POPULATION || name.length < TOWN_MIN_NAME_LENGTH) continue;
+      if (typeof a.long_ !== 'number' || typeof a.lat !== 'number') continue;
+      // Composite names ("Inverness and Bona") never appear verbatim in
+      // headlines — emit the component settlements instead.
+      const parts = / and |\s&\s/.test(name) ? name.split(/ and |\s&\s/) : [name];
+      for (const part of parts) {
+        const trimmed = part.trim();
+        if (trimmed.length < TOWN_MIN_NAME_LENGTH || AMBIGUOUS_TOWN_NAMES.has(trimmed)) continue;
+        towns.push({ name: trimmed, lon: a.long_, lat: a.lat, pop });
+      }
+    }
+    process.stdout.write(`places scanned: ${offset + rows.length}\r`);
+    if (rows.length < pageSize) break;
+  }
+  console.log(`\ntowns (BUA, pop >= ${TOWN_MIN_POPULATION}): ${towns.length}`);
+  return towns;
+}
+
+function pointInRing(lon, lat, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i];
+    const [xj, yj] = ring[j];
+    if (((yi > lat) !== (yj > lat)) && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** Outer rings only — constituency holes are negligible at BUC resolution. */
+function featureContains(feature, lon, lat) {
+  const geom = feature.geometry;
+  if (!geom) return false;
+  const polygons = geom.type === 'Polygon' ? [geom.coordinates]
+    : geom.type === 'MultiPolygon' ? geom.coordinates : [];
+  for (const polygon of polygons) {
+    const outer = polygon[0];
+    if (outer && pointInRing(lon, lat, outer)) return true;
+  }
+  return false;
+}
+
+function featureBbox(feature) {
+  let west = Infinity; let south = Infinity; let east = -Infinity; let north = -Infinity;
+  const geom = feature.geometry;
+  const polygons = geom?.type === 'Polygon' ? [geom.coordinates]
+    : geom?.type === 'MultiPolygon' ? geom.coordinates : [];
+  for (const polygon of polygons) {
+    for (const ring of polygon) {
+      for (const [lon, lat] of ring) {
+        if (lon < west) west = lon;
+        if (lon > east) east = lon;
+        if (lat < south) south = lat;
+        if (lat > north) north = lat;
+      }
+    }
+  }
+  return { west, south, east, north };
+}
+
+/** code -> town names (population-descending, capped). */
+function assignTownsToConstituencies(boundaries, towns) {
+  const bboxes = boundaries.map(featureBbox);
+  const byCode = new Map();
+  let assigned = 0;
+  const add = (code, name) => {
+    const list = byCode.get(code) ?? [];
+    if (list.length < TOWNS_PER_CONSTITUENCY && !list.includes(name)) {
+      list.push(name);
+      byCode.set(code, list);
+      assigned += 1;
+    }
+  };
+  for (const town of towns.sort((a, b) => b.pop - a.pop)) {
+    // Name pass first: "Milton Keynes" belongs to Milton Keynes North AND
+    // Central even though its single BUA centroid falls in one (or, for
+    // sprawling areas, drifts into a neighbour). Word-boundary match so
+    // "Ely" never claims "Elysium".
+    const townRe = new RegExp(`\\b${town.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    let namedHit = false;
+    for (const feature of boundaries) {
+      const constituencyName = feature.properties?.PCON24NM ?? '';
+      if (townRe.test(constituencyName)) {
+        add(feature.properties?.PCON24CD ?? '', town.name);
+        namedHit = true;
+      }
+    }
+    if (namedHit) continue;
+
+    for (let i = 0; i < boundaries.length; i += 1) {
+      const box = bboxes[i];
+      if (town.lon < box.west || town.lon > box.east || town.lat < box.south || town.lat > box.north) continue;
+      if (!featureContains(boundaries[i], town.lon, town.lat)) continue;
+      add(boundaries[i].properties?.PCON24CD ?? '', town.name);
+      break;
+    }
+  }
+  console.log(`towns assigned to constituencies: ${assigned}`);
+  return byCode;
+}
+
+const [boundaries, members, ukTowns] = await Promise.all([
+  fetchBoundaries(),
+  fetchCurrentMembers(),
+  fetchUkTowns(),
+]);
+const townsByCode = assignTownsToConstituencies(boundaries, ukTowns);
 
 const unmatched = [];
 const features = boundaries.map((f) => {
@@ -120,6 +276,7 @@ const features = boundaries.map((f) => {
       partyAbbr: rep?.partyAbbr ?? null,
       mp: rep?.mp ?? null,
       partyColor: rep?.partyColor ?? null,
+      towns: townsByCode.get(code) ?? [],
     },
   };
 });
@@ -138,6 +295,7 @@ const collection = {
       + 'Source: Office for National Statistics licensed under the Open Government Licence v.3.0. '
       + 'Contains OS data (C) Crown copyright and database right 2024.',
     control: 'Current MP party per constituency from the UK Parliament Members API (members-api.parliament.uk).',
+    towns: 'Settlement gazetteer from the ONS Index of Place Names in Great Britain (built-up areas, OGL v3), assigned by point-in-polygon.',
   },
   features,
 };

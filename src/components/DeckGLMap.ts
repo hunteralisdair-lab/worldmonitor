@@ -677,7 +677,7 @@ export class DeckGLMap {
   private regionalRailTimer: ReturnType<typeof setTimeout> | null = null;
   private regionalRailDismissed = false;
   private railPerspectiveUnsub: (() => void) | null = null;
-  private politicalCentroids: Array<{ lon: number; lat: number; name: string; mp: string | null; code: string }> | null = null;
+  private politicalCentroids: Array<{ lon: number; lat: number; name: string; mp: string | null; code: string; towns: string[] }> | null = null;
 
   // CII choropleth data
   private ciiScoresMap: Map<string, { score: number; level: string }> = new Map();
@@ -4617,6 +4617,22 @@ export class DeckGLMap {
     E: ['westminster', 'downing street', 'house of commons'],
   };
 
+  /**
+   * One alternation regex over town names, matched CASE-SENSITIVELY against
+   * the raw title with word boundaries: "Bath council" is a hit, "taking a
+   * bath" is not. Town names come from the ONS gazetteer, so escaping is
+   * defensive rather than expected.
+   */
+  private static buildTownRegex(towns: ReadonlySet<string>): RegExp | null {
+    if (towns.size === 0) return null;
+    const escaped = [...towns].map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    try {
+      return new RegExp(`\\b(?:${escaped.join('|')})\\b`);
+    } catch {
+      return null;
+    }
+  }
+
   private scheduleRegionalRailUpdate(): void {
     if (SITE_VARIANT !== 'politics') return;
     if (this.regionalRailTimer) clearTimeout(this.regionalRailTimer);
@@ -4648,6 +4664,7 @@ export class DeckGLMap {
         name: typeof props.name === 'string' ? props.name : '',
         mp: typeof props.mp === 'string' ? props.mp : null,
         code: typeof props.code === 'string' ? props.code : '',
+        towns: Array.isArray(props.towns) ? props.towns.filter((t): t is string => typeof t === 'string') : [],
       });
     }
     this.politicalCentroids = centroids;
@@ -4688,12 +4705,14 @@ export class DeckGLMap {
     }
 
     // Needles: visible constituency + MP names, plus nation-level terms for
-    // each nation with a constituency in view.
+    // each nation with a constituency in view, plus the towns gazetteer.
     const needles = new Set<string>();
     const nations = new Set<string>();
+    const towns = new Set<string>();
     for (const c of visible) {
       if (c.name.length > 3) needles.add(c.name.toLowerCase());
       if (c.mp && c.mp.length > 3) needles.add(c.mp.toLowerCase());
+      for (const town of c.towns) towns.add(town);
       const prefix = c.code.charAt(0);
       if (prefix && !nations.has(prefix)) {
         nations.add(prefix);
@@ -4701,11 +4720,13 @@ export class DeckGLMap {
       }
     }
     const needleList = [...needles];
+    const townRegex = DeckGLMap.buildTownRegex(towns);
 
     const seen = new Set<string>();
     const matched = this.news.filter((n) => {
       const title = n.title.toLowerCase();
-      if (!needleList.some(needle => title.includes(needle))) return false;
+      if (!needleList.some(needle => title.includes(needle))
+        && !(townRegex && townRegex.test(n.title))) return false;
       const key = n.link || `${n.source}|${n.title}`;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -5282,7 +5303,11 @@ export class DeckGLMap {
           partyAbbr: typeof props.partyAbbr === 'string' ? props.partyAbbr : null,
           mp,
           partyHex: ukPartyHex(party, typeof props.partyColor === 'string' ? props.partyColor : null),
-          stories: this.matchConstituencyNews(name, mp),
+          stories: this.matchConstituencyNews(
+            name,
+            mp,
+            Array.isArray(props.towns) ? (props.towns as unknown[]).filter((t): t is string => typeof t === 'string') : [],
+          ),
         },
         x: info.x,
         y: info.y,
@@ -7406,19 +7431,21 @@ export class DeckGLMap {
   }
 
   /**
-   * Regional-stories v1: headlines already on the map whose title mentions
-   * the constituency or its MP by full name. Deliberately strict — surname
-   * alone would false-positive on common names.
+   * Regional stories for one constituency: headlines already on the map that
+   * name the constituency, its MP (full name — surname alone would
+   * false-positive on common names), or one of its gazetteer towns.
    */
-  private matchConstituencyNews(constituency: string, mp: string | null): NewsItem[] {
+  private matchConstituencyNews(constituency: string, mp: string | null, towns: string[] = []): NewsItem[] {
     const needles = [constituency, mp]
       .filter((s): s is string => typeof s === 'string' && s.length > 3)
       .map((s) => s.toLowerCase());
-    if (needles.length === 0) return [];
+    const townRegex = DeckGLMap.buildTownRegex(new Set(towns));
+    if (needles.length === 0 && !townRegex) return [];
     return this.news
       .filter((n) => {
         const title = n.title.toLowerCase();
-        return needles.some((needle) => title.includes(needle));
+        return needles.some((needle) => title.includes(needle))
+          || (townRegex !== null && townRegex.test(n.title));
       })
       .slice(0, 5);
   }
