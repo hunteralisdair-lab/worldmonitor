@@ -1192,7 +1192,8 @@
         "speciesRecovery": "Ανάκαμψη ειδών",
         "renewableInstallations": "Καθαρή ενέργεια",
         "radiationSpike": "Αιχμή ραδιενέργειας",
-        "radiationElevated": "Αυξημένη ραδιενέργεια"
+        "radiationElevated": "Αυξημένη ραδιενέργεια",
+        "politicalControl": "UK Political Control"
       },
       "tooltip": {
         "earthquake": "Σεισμός",

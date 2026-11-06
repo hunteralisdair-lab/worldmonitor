@@ -1192,7 +1192,8 @@
         "speciesRecovery": "物种恢复",
         "renewableInstallations": "清洁能源",
         "radiationSpike": "辐射峰值",
-        "radiationElevated": "辐射升高"
+        "radiationElevated": "辐射升高",
+        "politicalControl": "UK Political Control"
       },
       "tooltip": {
         "earthquake": "地震",

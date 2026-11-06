@@ -1192,7 +1192,8 @@
         "speciesRecovery": "Phục hồi loài",
         "renewableInstallations": "Năng lượng sạch",
         "radiationSpike": "Đột tăng bức xạ",
-        "radiationElevated": "Bức xạ tăng cao"
+        "radiationElevated": "Bức xạ tăng cao",
+        "politicalControl": "UK Political Control"
       },
       "tooltip": {
         "earthquake": "Động đất",

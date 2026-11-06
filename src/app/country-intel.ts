@@ -196,10 +196,13 @@ export class CountryIntelManager implements AppModule {
       });
       // Boot framing on the persisted focus via the QUEUED setCenter path
       // (fitCountry is a no-op before the renderer exists, and
-      // whenRendererReady would force-load DeckGL and regress LCP).
+      // whenRendererReady would force-load DeckGL and regress LCP). A URL
+      // deep link with explicit map state wins — don't stomp shared links.
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlHasMapState = urlParams.has('lat') || urlParams.has('lon') || urlParams.has('zoom') || urlParams.has('view');
       const focus = getCountryFocus();
       const bounds = CountryIntelManager.COUNTRY_BOUNDS[focus.code];
-      if (bounds) {
+      if (bounds && !urlHasMapState) {
         const lat = (bounds.n + bounds.s) / 2;
         const lon = (bounds.e + bounds.w) / 2;
         // Half a step wider than a tight fit: the hero map is the country

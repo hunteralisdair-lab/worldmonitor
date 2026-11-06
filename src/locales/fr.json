@@ -1146,7 +1146,8 @@
         "speciesRecovery": "Rétablissement des espèces",
         "renewableInstallations": "Énergie propre",
         "radiationSpike": "Pic de radiation",
-        "radiationElevated": "Radiation élevée"
+        "radiationElevated": "Radiation élevée",
+        "politicalControl": "UK Political Control"
       },
       "tooltip": {
         "earthquake": "Tremblement de terre",

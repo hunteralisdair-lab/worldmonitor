@@ -1192,7 +1192,8 @@
         "speciesRecovery": "種の回復",
         "renewableInstallations": "クリーンエネルギー",
         "radiationSpike": "放射線スパイク",
-        "radiationElevated": "放射線上昇"
+        "radiationElevated": "放射線上昇",
+        "politicalControl": "UK Political Control"
       },
       "tooltip": {
         "earthquake": "地震",

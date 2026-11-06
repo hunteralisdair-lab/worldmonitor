@@ -1333,7 +1333,8 @@
         "kindness": "Kedvességi cselekmények",
         "happiness": "Világboldogság",
         "speciesRecovery": "Fajmegmentés",
-        "renewableInstallations": "Tiszta energia"
+        "renewableInstallations": "Tiszta energia",
+        "politicalControl": "UK Political Control"
       },
       "tooltip": {
         "earthquake": "Földrengés",

@@ -590,7 +590,8 @@
         "speciesRecovery": "Artåterhämtning",
         "renewableInstallations": "Ren energi",
         "radiationSpike": "Strålningsökning",
-        "radiationElevated": "Förhöjd strålning"
+        "radiationElevated": "Förhöjd strålning",
+        "politicalControl": "UK Political Control"
       },
       "layersTitle": "Lager",
       "layerSearch": "Sök lager...",

@@ -1007,7 +1007,8 @@
         "speciesRecovery": "Ochrona gatunków",
         "renewableInstallations": "Czysta energia",
         "radiationSpike": "Skok radioaktywności",
-        "radiationElevated": "Podwyższona radioaktywność"
+        "radiationElevated": "Podwyższona radioaktywność",
+        "politicalControl": "UK Political Control"
       },
       "layersTitle": "Warstwy",
       "layerSearch": "Szukaj warstw...",

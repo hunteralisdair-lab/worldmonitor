@@ -590,7 +590,8 @@
         "speciesRecovery": "Soortenherstel",
         "renewableInstallations": "Schone energie",
         "radiationSpike": "Stralingspiek",
-        "radiationElevated": "Verhoogde straling"
+        "radiationElevated": "Verhoogde straling",
+        "politicalControl": "UK Political Control"
       },
       "layersTitle": "Lagen",
       "layerSearch": "Lagen zoeken...",

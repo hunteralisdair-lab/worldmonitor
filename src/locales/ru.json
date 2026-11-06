@@ -1196,7 +1196,8 @@
         "speciesRecovery": "Восстановление видов",
         "renewableInstallations": "Чистая энергия",
         "radiationSpike": "Всплеск радиации",
-        "radiationElevated": "Повышенный уровень радиации"
+        "radiationElevated": "Повышенный уровень радиации",
+        "politicalControl": "UK Political Control"
       },
       "tooltip": {
         "earthquake": "Землетрясение",
