@@ -36,6 +36,8 @@ import {
   isPanelEntitled,
   enforceFreePanelLimit,
 } from '@/config';
+import { PANEL_CATEGORY_MAP } from '@/config/panels';
+import { FrontPageLead } from '@/components/FrontPageLead';
 import { BETA_MODE } from '@/config/beta';
 import { t } from '@/services/i18n';
 import { getCurrentTheme } from '@/utils';
@@ -737,6 +739,8 @@ export class PanelLayoutManager implements AppModule {
     this.mobilePanelNav = null;
     this.sidePanelNav?.destroy();
     this.sidePanelNav = null;
+    this.ctx.frontPageLead?.destroy();
+    this.ctx.frontPageLead = null;
     this.mobileMapCollapseBtn = null;
     this.panelTabBar?.destroy();
     this.panelTabBar = null;
@@ -1112,6 +1116,7 @@ export class PanelLayoutManager implements AppModule {
       <div class="dashboard-tabs-mount" id="panelTabsMount"></div>
       ${this.useSideNav() ? '<div class="main-row" id="mainRow"><aside class="side-panel-nav-mount" id="sideNavMount"></aside>' : ''}
       <main id="main" tabindex="-1" class="main-content${this.ctx.isDesktopApp ? ' desktop-grid' : ''}">
+        ${this.useBroadsheet() ? '<section class="front-page-lead" id="frontPageLead"></section>' : ''}
         <div class="map-section${mapStartsCollapsed ? ' collapsed' : ''}" id="mapSection">
           <div class="panel-header">
             <div class="panel-header-left">
@@ -1213,12 +1218,88 @@ export class PanelLayoutManager implements AppModule {
     }
 
     this.setupPerspectiveControls();
+    this.setupFrontPageLead();
   }
 
   /** Politics variant gets a desktop left category nav (the fork's five
    *  headings); other variants keep the original layout untouched. */
   private useSideNav(): boolean {
     return !this.ctx.isMobile && SITE_VARIANT === 'politics';
+  }
+
+  /** Politics desktop renders the broadsheet front page: lead-story zone,
+   *  compact map band, section dividers in the grid. Mobile keeps the feed
+   *  paradigm (it gets the dividers via CSS, not the lead zone). */
+  private useBroadsheet(): boolean {
+    return !this.ctx.isMobile && SITE_VARIANT === 'politics';
+  }
+
+  private setupFrontPageLead(): void {
+    if (!this.useBroadsheet()) return;
+    const mount = document.getElementById('frontPageLead');
+    if (!mount) return;
+    this.ctx.frontPageLead = new FrontPageLead(mount);
+  }
+
+  // ============================================
+  // Broadsheet section dividers (politics variant)
+  // ============================================
+
+  /** `panel key → section` map, derived once from the five politics entries
+   *  in PANEL_CATEGORY_MAP so the dividers can never drift from the side
+   *  nav's own category definitions. */
+  private broadsheetSectionByKey: Map<string, { id: string; labelKey: string }> | null = null;
+
+  private getBroadsheetSections(): Map<string, { id: string; labelKey: string }> {
+    if (this.broadsheetSectionByKey) return this.broadsheetSectionByKey;
+    const byKey = new Map<string, { id: string; labelKey: string }>();
+    for (const [id, category] of Object.entries(PANEL_CATEGORY_MAP)) {
+      if (!category.variants?.includes('politics')) continue;
+      for (const key of category.panelKeys) {
+        byKey.set(key, { id, labelKey: category.labelKey });
+      }
+    }
+    this.broadsheetSectionByKey = byKey;
+    return byKey;
+  }
+
+  /**
+   * Rebuild the full-width section mastheads between panel groups. Rebuilt,
+   * never maintained: applySavedPanelOrder() moves every panel element to
+   * the grid front, which would strand interleaved dividers — so every
+   * caller that can change panel order or visibility re-syncs from scratch.
+   * A divider precedes the first visible panel of each CONTIGUOUS section
+   * run; under a custom order a section label may legitimately repeat.
+   * Dividers carry no data-panel, so order persistence, drag targeting and
+   * the category-filter navs all ignore them by construction.
+   */
+  private syncBroadsheetDividers(): void {
+    if (SITE_VARIANT !== 'politics') return;
+    const grid = document.getElementById('panelsGrid');
+    if (!grid) return;
+
+    for (const divider of Array.from(grid.querySelectorAll('.broadsheet-divider'))) {
+      divider.remove();
+    }
+
+    const sections = this.getBroadsheetSections();
+    const FALLBACK_SECTION = { id: '__more__', labelKey: 'components.frontPage.sectionMore' };
+    let previousSectionId: string | null = null;
+
+    for (const child of Array.from(grid.children)) {
+      const el = child as HTMLElement;
+      const key = el.dataset.panel;
+      if (!key) continue;
+      if (el.classList.contains('hidden')) continue;
+      const section = sections.get(key) ?? FALLBACK_SECTION;
+      if (section.id !== previousSectionId) {
+        const divider = document.createElement('h2');
+        divider.className = 'broadsheet-divider';
+        divider.textContent = t(section.labelKey);
+        grid.insertBefore(divider, el);
+        previousSectionId = section.id;
+      }
+    }
   }
 
   // ============================================
@@ -1735,6 +1816,8 @@ export class PanelLayoutManager implements AppModule {
     });
     this.mobilePanelNav?.refresh();
     this.sidePanelNav?.refresh();
+    // Enable/disable changes which panels are visible, so section runs change.
+    this.syncBroadsheetDividers();
   }
 
   /**
@@ -2726,7 +2809,9 @@ export class PanelLayoutManager implements AppModule {
     } else {
       allOrder = [...defaultOrder];
 
-      if (SITE_VARIANT !== 'happy') {
+      // Politics keeps its broadsheet order from POLITICS_PANELS: news leads,
+      // live-news sits in the back pages instead of being forced first.
+      if (SITE_VARIANT !== 'happy' && SITE_VARIANT !== 'politics') {
         const liveNewsIdx = allOrder.indexOf('live-news');
         if (liveNewsIdx > 0) {
           allOrder.splice(liveNewsIdx, 1);
@@ -2764,6 +2849,11 @@ export class PanelLayoutManager implements AppModule {
     sidebarOrder.forEach((key: string) => {
       this.insertInitialPanelByKey(panelsGrid, key);
     });
+
+    // Same task as the shell/placeholder inserts above, so the dividers and
+    // the first panels paint together instead of shifting the grid a frame
+    // later (the politics CLS budget is the binding constraint here).
+    this.syncBroadsheetDividers();
 
     // "+" Add Panel block at the end of the grid
     const addPanelBlock = document.createElement('button');
@@ -3181,6 +3271,8 @@ export class PanelLayoutManager implements AppModule {
       const el = this.getPanelElementForOrdering(key);
       if (el) bottomGrid.appendChild(el);
     });
+
+    this.syncBroadsheetDividers();
   }
 
   savePanelOrder(): void {
@@ -3200,6 +3292,9 @@ export class PanelLayoutManager implements AppModule {
     this.resolvedPanelOrder = allOrder;
     saveToStorage(this.ctx.PANEL_ORDER_KEY, allOrder);
     saveToStorage(this.ctx.PANEL_ORDER_KEY + '-bottom-set', Array.from(this.bottomSetMemory));
+
+    // Drag-drop just changed the grid's child order; relabel the sections.
+    this.syncBroadsheetDividers();
   }
 
   private buildUnifiedOrder(sidebarIds: string[], bottomIds: string[]): string[] {
@@ -3313,6 +3408,10 @@ export class PanelLayoutManager implements AppModule {
   }
 
   private getEffectiveUltraWide(): boolean {
+    // Politics broadsheet is single-column at every width: the compact map
+    // band has no room for #mapBottomGrid, so stale bottom-set memories from
+    // other variants must re-home into the main grid instead.
+    if (SITE_VARIANT === 'politics') return false;
     const mapSection = document.getElementById('mapSection');
     const mapEnabled = !mapSection?.classList.contains('hidden');
     return window.innerWidth >= this.getUltraWideMinWidth() && mapEnabled;

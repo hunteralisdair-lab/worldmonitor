@@ -27625,3 +27625,235 @@ body.map-width-resizing {
   .main-row { display: contents; }
   .side-panel-nav-mount { display: none; }
 }
+
+/* ============================================================
+   Politics broadsheet layout (variant-gated macro structure).
+   Geometry lives HERE, not in politics-theme.css: that sheet loads lazily
+   after first paint, so any layout rule there would shift the page.
+   Reading order on politics desktop: front-page lead (fixed 280px) →
+   compact map band (220px) → sectioned panels grid. Every box above the
+   grid is fixed-height, which is what keeps the dashboard-cls e2e rects
+   stable through hydration. Skeleton mirror: index.html politics block.
+   ============================================================ */
+
+/* Lead zone: desktop-only, fixed-height in every state (CLS contract). */
+:root[data-variant="politics"] .front-page-lead {
+  display: none;
+}
+
+/* Section mastheads inside the grid. Box geometry only — the serif
+   small-caps and Scotch rule live in politics-theme.css (paint-only). */
+:root[data-variant="politics"] .broadsheet-divider {
+  margin: 0;
+  padding: 14px 4px 5px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  border-bottom: 2px solid var(--border-strong);
+}
+:root[data-variant="politics"] .panels-grid.mobile-cat-filtered .broadsheet-divider {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  :root[data-variant="politics"] .front-page-lead {
+    display: block;
+    flex: none;
+    height: 280px;
+    overflow: hidden;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+  :root[data-variant="politics"] .front-page-lead-inner {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--dashboard-grid-gap);
+    height: 100%;
+    padding: var(--dashboard-grid-gap);
+    box-sizing: border-box;
+  }
+  :root[data-variant="politics"] .lead-story {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    overflow: hidden;
+    min-width: 0;
+  }
+  :root[data-variant="politics"] .lead-story-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  :root[data-variant="politics"] .lead-story-source {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :root[data-variant="politics"] .lead-story-time {
+    margin-left: auto;
+    flex: none;
+    color: var(--text-faint);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  :root[data-variant="politics"] .lead-story-title {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 16px;
+    line-height: 1.3;
+    overflow: hidden;
+  }
+  :root[data-variant="politics"] .lead-story-title:hover {
+    color: var(--accent);
+  }
+  :root[data-variant="politics"] .lead-story-snippet {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    overflow: hidden;
+  }
+  :root[data-variant="politics"] .lead-story-foot {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  :root[data-variant="politics"] .lead-story-sources {
+    color: var(--text-muted);
+  }
+  :root[data-variant="politics"] .lead-story-more {
+    margin-left: auto;
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  :root[data-variant="politics"] .lead-story-more:hover {
+    color: var(--accent);
+  }
+  :root[data-variant="politics"] .lead-empty {
+    margin: auto;
+    grid-column: 1 / -1;
+    align-self: center;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  :root[data-variant="politics"] .lead-story-shimmer {
+    justify-content: center;
+    gap: 10px;
+  }
+  :root[data-variant="politics"] .lead-shimmer-line {
+    height: 10px;
+    background: var(--overlay-light);
+    animation: lead-shimmer-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes lead-shimmer-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :root[data-variant="politics"] .lead-shimmer-line { animation: none; }
+  }
+  :root[data-variant="politics"] .lead-shimmer-line.w40 { width: 40%; }
+  :root[data-variant="politics"] .lead-shimmer-line.w75 { width: 75%; }
+
+  /* Compact map band: demoted from the 50vh hero. Plain specificity, no
+     !important — the user's resize drag (inline style) still wins, and a
+     saved map-height restores their height. */
+  :root[data-variant="politics"] .main-content .map-section {
+    height: 220px;
+    min-height: 160px;
+  }
+  /* Pinning a compact band is meaningless; fullscreen is the expand path. */
+  :root[data-variant="politics"] #mapPinBtn {
+    display: none;
+  }
+
+  /* Broadsheet grid: no dense backfill (panels must stay inside their
+     labeled section run), and rows go AUTO: divider-only rows collapse to
+     the masthead's height while panel rows land at exactly 380px, because
+     every natural-footprint panel below carries an EXPLICIT height (the
+     #5332 pin pattern applied variant-wide). Chrome pins fixed minmax()
+     tracks to their minimum regardless of content, so minmax() cannot host
+     two row heights — measured directly, not inferred. Uniform fixed-height
+     panels also pin the whole grid's geometry from first paint. */
+  :root[data-variant="politics"] .panels-grid {
+    grid-auto-flow: row;
+    grid-auto-rows: auto;
+  }
+  :root[data-variant="politics"] #panelsGrid > .panel:not(.resized):not(.panel-collapsed):not(.panel-wide):not(.span-1):not(.span-2):not(.span-3):not(.span-4) {
+    height: var(--dashboard-panel-row-max);
+  }
+  :root[data-variant="politics"] .panels-grid .broadsheet-divider {
+    grid-column: 1 / -1;
+    align-self: end;
+  }
+
+  /* Lead panel ("World News"): natural 2x2 footprint, same :not() contract
+     as the #5332 pins, so user resizes and explicit spans still win and the
+     deferred shell (same classes) shares the footprint — no CLS, and no
+     DEFERRED_PANEL_NATURAL_FOOTPRINTS change (that mirror covers
+     constructor-declared footprints; this is a variant CSS treatment). */
+  :root[data-variant="politics"] #panelsGrid > .panel[data-panel="politics"]:not(.resized):not(.span-1):not(.span-2):not(.span-3):not(.span-4):not(.col-span-1):not(.col-span-2):not(.col-span-3) {
+    grid-column: span 2;
+    grid-row: span 2;
+    height: calc(var(--dashboard-panel-row-max) * 2 + var(--dashboard-grid-gap));
+    max-height: none;
+  }
+}
+
+/* Mobile: the grid is a flex column, so dividers are compact flex children.
+   The lead zone stays hidden — the Today feed is already news-first. */
+@media (max-width: 768px) {
+  :root[data-variant="politics"] .broadsheet-divider {
+    padding: 12px 8px 4px;
+    font-size: 13px;
+  }
+}
+
+/* Politics is single-column at EVERY width: neutralize the ultra-wide
+   map|handle|grid split and the desktop-app grid. !important only where the
+   base rules are themselves !important inside this layer. */
+@media (min-width: 1600px) {
+  :root[data-variant="politics"] .main-content {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  :root[data-variant="politics"] .main-content .map-section {
+    height: 220px !important;
+    min-height: 160px;
+    position: relative;
+  }
+  :root[data-variant="politics"] .map-width-resize-handle {
+    display: none;
+  }
+}
+:root[data-variant="politics"] .main-content.desktop-grid {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+:root[data-variant="politics"] .main-content.desktop-grid .map-section {
+  height: 220px !important;
+  min-height: 160px;
+  position: relative;
+}
+:root[data-variant="politics"] .main-content.desktop-grid .map-width-resize-handle {
+  display: none;
+}

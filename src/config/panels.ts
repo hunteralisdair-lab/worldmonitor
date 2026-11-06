@@ -1118,9 +1118,14 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
 // the politics-only news keys (uk-politics, social, environment, econ-news)
 // fetch direct on local/desktop. Keep in sync with POLITICS_FEEDS in feeds.ts.
 const POLITICS_PANELS: Record<string, PanelConfig> = {
+  // Key order IS the broadsheet default order (VARIANT_DEFAULTS reads
+  // Object.keys): news sections lead, analysis follows, live video and
+  // utilities take the back pages. Keep each politics entry of the category
+  // map (further down this file) contiguous — the broadsheet section
+  // dividers label contiguous runs. NOTE: the guardrail test's category
+  // parser anchors on the map's first name mention, so don't write that
+  // identifier above its declaration.
   map: { name: 'Global Politics Map', enabled: true, priority: 1 },
-  'live-news': { name: 'Politics Headlines', enabled: true, priority: 1 },
-  insights: { name: 'AI Political Insights', enabled: true, priority: 1 },
   // No 'latest-brief': it is tied to a Clerk account server-side (per-user
   // brief), so it can never render content in the open-access fork.
   // News
@@ -1150,7 +1155,9 @@ const POLITICS_PANELS: Record<string, PanelConfig> = {
   markets: { name: 'Markets', enabled: true, priority: 2 },
   'trade-policy': { name: 'Trade Policy', enabled: true, priority: 2, premium: 'locked' as const },
   'sanctions-pressure': { name: 'Sanctions Pressure', enabled: true, priority: 2 },
-  // Utilities
+  // Back pages: AI digest, live video, utilities
+  insights: { name: 'AI Political Insights', enabled: true, priority: 1 },
+  'live-news': { name: 'Politics Headlines', enabled: true, priority: 1 },
   monitors: { name: 'My Monitors', enabled: true, priority: 2 },
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
 };

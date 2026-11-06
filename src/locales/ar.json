@@ -2693,6 +2693,12 @@
         "right": "Source leans right",
         "unrated": "Source not yet rated"
       }
+    },
+    "frontPage": {
+      "ariaLabel": "Lead stories",
+      "more": "More coverage",
+      "empty": "Front-page stories will appear as feeds load",
+      "sectionMore": "Also Today"
     }
   },
   "popups": {

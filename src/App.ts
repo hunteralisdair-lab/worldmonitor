@@ -1339,6 +1339,7 @@ export class App {
       mapLayers,
       allNews: [],
       newsByCategory: {},
+      frontPageLead: null,
       latestMarkets: [],
       latestPredictions: [],
       latestTechEvents: [],

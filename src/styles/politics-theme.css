@@ -277,3 +277,43 @@
     display: none;
   }
 }
+
+/* ---------- Broadsheet typography (paint-only; geometry is in main.css) ----------
+   Section mastheads: serif small-caps over a Scotch rule — the heavy line
+   comes from main.css (geometry), the hairline companion is drawn here as a
+   non-layout ::after so the lazy theme load cannot shift the grid. */
+:root[data-variant="politics"] .broadsheet-divider {
+  font-family: var(--font-serif);
+  font-variant-caps: small-caps;
+  letter-spacing: 2.5px;
+  color: var(--accent);
+  border-bottom-color: var(--border-strong);
+  position: relative;
+}
+:root[data-variant="politics"] .broadsheet-divider::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Front-page lead stories: serif headlines; the first slot carries the
+   biggest type — one deliberate hierarchy, not four equal cards. */
+:root[data-variant="politics"] .lead-story-title {
+  font-family: var(--font-serif);
+}
+:root[data-variant="politics"] .lead-story-first .lead-story-title {
+  font-size: 19px;
+  line-height: 1.22;
+}
+:root[data-variant="politics"] .lead-story-snippet {
+  font-family: var(--font-serif);
+}
+
+/* Lead panel ("World News", politics-only 2x2): its headlines read a point
+   larger than the section panels'. */
+:root[data-variant="politics"] .panel[data-panel="politics"] .item-title {
+  font-size: calc(14px * var(--wm-panel-effective-scale, 1));
+}

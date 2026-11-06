@@ -23,6 +23,7 @@ import {
   isPanelInVariantDefaults,
 } from '@/config';
 import { resolveNewsCategories, enabledNewsCategoryKeys, type ResolvedCategory } from '@/config/feed-resolution';
+import { selectLeadStories } from '@/services/front-page-lead';
 import {
   countRepresentedSources,
   mergeRotatedNewsItems,
@@ -1900,6 +1901,20 @@ export class DataLoaderManager implements AppModule {
 
     this.ctx.map?.updateHotspotActivity(this.ctx.allNews);
 
+    // Politics broadsheet: the lead zone renders from the same digest items
+    // the panels just received — no extra fetch, direct call (the zone mounts
+    // with the shell, before any load pass, so no pending-queue is needed).
+    // Only categories with an enabled panel qualify: the digest also carries
+    // panel-less categories (e.g. 'crisis' on politics), whose stories would
+    // give the lead zone a "More coverage" link with nowhere to go.
+    if (this.ctx.frontPageLead) {
+      const visibleCategories = Object.fromEntries(
+        Object.entries(this.ctx.newsByCategory)
+          .filter(([key]) => this.ctx.panelSettings[key]?.enabled),
+      );
+      this.ctx.frontPageLead.setStories(selectLeadStories(visibleCategories));
+    }
+
     this.updateMonitorResults();
 
     try {
@@ -1922,6 +1937,9 @@ export class DataLoaderManager implements AppModule {
       if (isPanelInVariantDefaults('threat-timeline')) {
         this.callPanel('threat-timeline', 'refresh', this.ctx.latestClusters);
       }
+      // Upgrade the lead zone's corroboration badges now that publisher
+      // counts exist; the stories themselves were pushed before clustering.
+      this.ctx.frontPageLead?.upgradeCorroboration(this.ctx.latestClusters);
 
       hydrateGeoHubPanelFromClusters(
         this.ctx.panels['geo-hubs'] as GeoHubsPanel | undefined,

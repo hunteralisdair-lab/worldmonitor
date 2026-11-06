@@ -81,6 +81,8 @@ export interface AppContext {
 
   allNews: NewsItem[];
   newsByCategory: Record<string, NewsItem[]>;
+  /** Politics broadsheet lead-story zone (desktop only; not a Panel). */
+  frontPageLead: import('@/components/FrontPageLead').FrontPageLead | null;
   latestMarkets: MarketData[];
   latestPredictions: import('@/services/prediction').PredictionMarket[];
   latestTechEvents: Array<{ id: string; title: string; location: string; startDate: string; [key: string]: unknown }>;

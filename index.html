@@ -417,6 +417,13 @@
         [data-variant="politics"] .skeleton-mainrow{flex:1;display:flex;flex-direction:row;align-items:stretch;min-height:0;overflow:hidden}
         [data-variant="politics"] .skeleton-mainrow .skeleton-main{flex:1 1 0;min-width:0}
         [data-variant="politics"] .skeleton-sidenav{display:block;flex:0 0 170px;background:#1d1710;border-right:1px solid #382d1f}
+        /* Broadsheet parity: the hydrated politics shell is lead zone (280px)
+           -> compact map band (220px) -> grid, so the skeleton reserves the
+           lead box via ::before and pins the map band to the same 220px.
+           Heights must stay byte-equal to the main.css politics rules — the
+           boot-shell footprint warner budgets 2px. */
+        [data-variant="politics"] .skeleton-main::before{content:"";flex:none;height:280px;box-sizing:border-box;border-bottom:1px solid #382d1f;background:#1b1510}
+        [data-variant="politics"] .skeleton-map{height:220px;min-height:220px;max-height:220px}
       }
 
       @media (max-width:768px){
