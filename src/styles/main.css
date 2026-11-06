@@ -27636,6 +27636,81 @@ body.map-width-resizing {
    stable through hydration. Skeleton mirror: index.html politics block.
    ============================================================ */
 
+/* Core statecraft tokens pre-duplicated from politics-theme.css (which is
+   lazy-loaded post-paint) so the hydrated app's first frame paints parchment
+   (light) / umber (dark) instead of the generic cool palettes. The full
+   token sets stay in politics-theme.css. NOTE: must sit AFTER the generic
+   [data-theme="light"] block near the top of this file — a test anchors on
+   its first occurrence. */
+:root[data-variant="politics"][data-theme="light"] {
+  --bg: #f5efe3; --bg-secondary: #efe7d6;
+  --surface: #fbf7ee; --surface-hover: #f1ead9; --surface-active: #e8dfc9;
+  --border: #d9cdb2; --border-strong: #bfb093; --border-subtle: #e9e0cc;
+  --text: #2c2518; --text-secondary: #4a4132; --text-dim: #6e6450;
+  --text-muted: #8c8169; --text-faint: #a79b82; --text-ghost: #c2b89f;
+  --accent: #7c5e14;
+  --input-bg: #efe8d7;
+  --panel-bg: #fbf7ee; --panel-border: #d9cdb2;
+  --map-bg: #e9e0c9; --map-grid: #d6c9a8; --map-country: #ddd1b4; --map-stroke: #a08c5a;
+  --yellow: #a97f10; --status-cached: #a97f10;
+}
+:root[data-variant="politics"]:not([data-theme="light"]) {
+  --bg: #16110c; --bg-secondary: #1b1510;
+  --surface: #201a13; --surface-hover: #292118; --surface-active: #2e2517;
+  --border: #382d1f; --border-strong: #52422c; --border-subtle: #261e14;
+  --text: #efe7d8; --text-secondary: #d8cdb8; --text-dim: #a2947c;
+  --text-muted: #7d7260; --text-faint: #635a4b; --text-ghost: #4a4337;
+  --accent: #e0b64e;
+  --input-bg: #221b12;
+  --panel-bg: #1d1710; --panel-border: #382d1f;
+  --map-bg: #120d08; --map-grid: #2b2214; --map-country: #241b10; --map-stroke: #6b5527;
+  --yellow: #e0b64e; --status-cached: #e0b64e;
+}
+
+/* ---------- Politics editorial chrome strip (both themes) ----------
+   The paper-first identity: no desk chrome. CSS-hide ONLY — e2e specs query
+   .panel-data-badge by DOM presence, and perf-composited-animations asserts
+   the .bump/.pulse rules still exist elsewhere in this file. !important is
+   required because Panel.ts toggles these badges' inline display. */
+:root[data-variant="politics"] .panel .panel-count,
+:root[data-variant="politics"] .panel .panel-new-badge,
+:root[data-variant="politics"] .panel .panel-data-badge,
+:root[data-variant="politics"] .panel .panel-severity-dot,
+:root[data-variant="politics"] .panel .panel-freshness-badge,
+:root[data-variant="politics"] .panel .panel-live-count,
+:root[data-variant="politics"] .deviation-indicator,
+:root[data-variant="politics"] .phase-badge,
+:root[data-variant="politics"] .new-tag,
+:root[data-variant="politics"] .alert-tag,
+:root[data-variant="politics"] .velocity-badge,
+:root[data-variant="politics"] .sentiment-badge,
+:root[data-variant="politics"] .category-tag,
+:root[data-variant="politics"] .risk-score-badge,
+:root[data-variant="politics"] .tier-badge,
+:root[data-variant="politics"] .propaganda-badge,
+:root[data-variant="politics"] .related-assets {
+  display: none !important;
+}
+/* Neon "new"/alert treatments go quiet instead of flashing */
+:root[data-variant="politics"] .panel.has-new .panel-header { background: none; }
+:root[data-variant="politics"] .panel.has-new .panel-title { color: var(--text); }
+:root[data-variant="politics"] .item.item-new,
+:root[data-variant="politics"] .item.item-new-highlight {
+  border-inline-start-color: transparent !important;
+  background: none;
+  animation: none;
+}
+:root[data-variant="politics"] .item.alert {
+  border-inline-start: none;
+  animation: none;
+}
+/* With the data badge hidden, the base header's space-between + the badge's
+   margin-left:auto no longer anchor the controls; push from the left group
+   instead. Scoped to .panel so the map-section header keeps its layout. */
+:root[data-variant="politics"] .panel > .panel-header > .panel-header-left {
+  margin-right: auto;
+}
+
 /* Lead zone: desktop-only, fixed-height in every state (CLS contract). */
 :root[data-variant="politics"] .front-page-lead {
   display: none;
@@ -27656,20 +27731,68 @@ body.map-width-resizing {
 }
 
 @media (min-width: 769px) {
+  /* Split hero: lead stories 60% left, interactive map 40% right, one fixed
+     420px band. Achieved with flex row-wrap on .main-content itself — #main's
+     children are exactly lead/map/handle/grid and nothing selects them with a
+     child combinator, so no wrapper DOM is needed. Fixed cell sizes are what
+     keep the dashboard-cls tracked boxes stable. Skeleton mirror: index.html
+     politics block (::before 60%/420px + .skeleton-map 40%/420px). */
+  :root[data-variant="politics"] .main-content {
+    display: flex;
+    flex-flow: row wrap;
+    align-content: flex-start;
+  }
   :root[data-variant="politics"] .front-page-lead {
-    display: block;
-    flex: none;
-    height: 280px;
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 60%;
+    height: 420px;
     overflow: hidden;
     box-sizing: border-box;
+    border-right: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
     background: var(--bg-secondary);
   }
+  :root[data-variant="politics"] .lead-focus-bar {
+    flex: none;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    letter-spacing: 0.6px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  :root[data-variant="politics"] .lead-focus-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  :root[data-variant="politics"] .lead-focus-back {
+    margin-left: auto;
+    flex: none;
+    background: none;
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    font: inherit;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  :root[data-variant="politics"] .lead-focus-back:hover {
+    color: var(--accent);
+    border-color: var(--border-strong);
+  }
   :root[data-variant="politics"] .front-page-lead-inner {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
     gap: var(--dashboard-grid-gap);
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     padding: var(--dashboard-grid-gap);
     box-sizing: border-box;
   }
@@ -27772,14 +27895,23 @@ body.map-width-resizing {
   :root[data-variant="politics"] .lead-shimmer-line.w40 { width: 40%; }
   :root[data-variant="politics"] .lead-shimmer-line.w75 { width: 75%; }
 
-  /* Compact map band: demoted from the 50vh hero. Plain specificity, no
-     !important — the user's resize drag (inline style) still wins, and a
-     saved map-height restores their height. */
+  /* Map as the hero's right cell: the country NAVIGATOR. Vertical resize is
+     disabled on politics desktop (event-handlers gates the drag + clears the
+     saved height) so the 420px row stays true; fullscreen is the expand path. */
   :root[data-variant="politics"] .main-content .map-section {
-    height: 220px;
-    min-height: 160px;
+    flex: 0 0 40%;
+    height: 420px;
+    min-height: 420px;
+    box-sizing: border-box;
   }
-  /* Pinning a compact band is meaningless; fullscreen is the expand path. */
+  :root[data-variant="politics"] #mapResizeHandle {
+    display: none;
+  }
+  :root[data-variant="politics"] .panels-grid {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+  /* Pinning a hero cell is meaningless; fullscreen is the expand path. */
   :root[data-variant="politics"] #mapPinBtn {
     display: none;
   }
@@ -27832,12 +27964,13 @@ body.map-width-resizing {
 @media (min-width: 1600px) {
   :root[data-variant="politics"] .main-content {
     display: flex;
-    flex-direction: column;
+    flex-flow: row wrap;
+    align-content: flex-start;
     overflow-y: auto;
   }
   :root[data-variant="politics"] .main-content .map-section {
-    height: 220px !important;
-    min-height: 160px;
+    height: 420px !important;
+    min-height: 420px;
     position: relative;
   }
   :root[data-variant="politics"] .map-width-resize-handle {
@@ -27846,12 +27979,13 @@ body.map-width-resizing {
 }
 :root[data-variant="politics"] .main-content.desktop-grid {
   display: flex;
-  flex-direction: column;
+  flex-flow: row wrap;
+  align-content: flex-start;
   overflow-y: auto;
 }
 :root[data-variant="politics"] .main-content.desktop-grid .map-section {
-  height: 220px !important;
-  min-height: 160px;
+  height: 420px !important;
+  min-height: 420px;
   position: relative;
 }
 :root[data-variant="politics"] .main-content.desktop-grid .map-width-resize-handle {

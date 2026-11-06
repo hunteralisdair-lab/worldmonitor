@@ -1,6 +1,7 @@
 import type { ClusteredEvent } from '@/types';
 import { getSourceBias } from '@/config/source-bias';
 import { getPerspectiveLens, subscribePerspective, lensMatchesBias } from '@/services/perspective-store';
+import { getCountryFocus, setCountryFocus, subscribeCountryFocus, isDefaultFocus, DEFAULT_COUNTRY_FOCUS } from '@/services/country-focus-store';
 import type { LeadStory } from '@/services/front-page-lead';
 import { t } from '@/services/i18n';
 import { formatTime } from '@/utils';
@@ -36,6 +37,7 @@ export class FrontPageLead {
   /** link → unique publisher count, upgraded once clustering settles. */
   private publisherCounts = new Map<string, number>();
   private unsubscribePerspective: (() => void) | null = null;
+  private unsubscribeFocus: (() => void) | null = null;
 
   constructor(mount: HTMLElement) {
     this.mount = mount;
@@ -45,13 +47,24 @@ export class FrontPageLead {
     this.unsubscribePerspective = subscribePerspective(() => {
       if (this.hasData) this.render();
     });
+    // Re-render the focus bar immediately on a focus change; the re-selected
+    // stories arrive a beat later via data-loader's pushFrontPageLead.
+    this.unsubscribeFocus = subscribeCountryFocus(() => {
+      if (this.hasData) this.render();
+      else this.renderLoading();
+    });
 
     // Clicking a story's "More coverage" link reveals its section panel:
     // the event clears any active category filter hiding it (SidePanelNav /
     // MobilePanelNav listen), and the scroll brings it into view — the event
     // alone is invisible when no filter is active.
     this.mount.addEventListener('click', (e) => {
-      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.lead-story-more');
+      const target = e.target as HTMLElement;
+      if (target.closest('.lead-focus-back')) {
+        setCountryFocus(DEFAULT_COUNTRY_FOCUS);
+        return;
+      }
+      const btn = target.closest<HTMLButtonElement>('.lead-story-more');
       if (!btn?.dataset.category) return;
       const category = btn.dataset.category;
       window.dispatchEvent(new CustomEvent('wm:reveal-panel', { detail: { panelId: category } }));
@@ -97,9 +110,32 @@ export class FrontPageLead {
     return `<span class="bias-dot ${bias ? `bias-${bias}` : 'bias-unrated'}" title="${escapeHtml(label)}"></span>`;
   }
 
+  /**
+   * The focus bar renders in EVERY state (fixed strip — CLS contract):
+   * default focus reads as the masthead; any other country shows the
+   * "Viewing" state with a Back control.
+   */
+  private renderFocusBar(): string {
+    const focus = getCountryFocus();
+    if (isDefaultFocus(focus)) {
+      return `
+        <div class="lead-focus-bar">
+          <span class="lead-focus-label">${escapeHtml(t('components.frontPage.masthead', { country: focus.name }))}</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="lead-focus-bar lead-focus-bar-active">
+        <span class="lead-focus-label">${escapeHtml(t('components.frontPage.viewing', { country: focus.name }))}</span>
+        <button class="lead-focus-back" type="button">${escapeHtml(t('components.frontPage.backTo', { country: DEFAULT_COUNTRY_FOCUS.name }))}</button>
+      </div>
+    `;
+  }
+
   private renderLoading(): void {
     this.mount.setAttribute('aria-busy', 'true');
     setTrustedHtml(this.mount, trustedHtml(`
+      ${this.renderFocusBar()}
       <div class="front-page-lead-inner" data-state="loading">
         ${Array.from({ length: 4 }, () => `
           <article class="lead-story lead-story-shimmer" aria-hidden="true">
@@ -109,7 +145,7 @@ export class FrontPageLead {
           </article>
         `).join('')}
       </div>
-    `, 'front-page lead shimmer: static markup, no interpolated data'));
+    `, 'front-page lead shimmer: focus bar is localized copy, escaped'));
   }
 
   private render(): void {
@@ -117,6 +153,7 @@ export class FrontPageLead {
 
     if (this.stories.length === 0) {
       setTrustedHtml(this.mount, trustedHtml(`
+        ${this.renderFocusBar()}
         <div class="front-page-lead-inner" data-state="empty">
           <p class="lead-empty">${escapeHtml(t('components.frontPage.empty'))}</p>
         </div>
@@ -159,7 +196,7 @@ export class FrontPageLead {
     }).join('');
 
     setTrustedHtml(this.mount, trustedHtml(
-      `<div class="front-page-lead-inner" data-state="ready">${html}</div>`,
+      `${this.renderFocusBar()}<div class="front-page-lead-inner" data-state="ready">${html}</div>`,
       'front-page lead stories: all feed-derived fields escaped/sanitized above',
     ));
   }
@@ -167,6 +204,8 @@ export class FrontPageLead {
   public destroy(): void {
     this.unsubscribePerspective?.();
     this.unsubscribePerspective = null;
+    this.unsubscribeFocus?.();
+    this.unsubscribeFocus = null;
     setTrustedHtml(this.mount, trustedHtml('', 'front-page lead teardown'));
   }
 }

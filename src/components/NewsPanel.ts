@@ -9,6 +9,7 @@ import { analysisWorker, enrichWithVelocityML, getClusterAssetContext, MAX_DISTA
 import { SITE_VARIANT } from '@/config';
 import { getSourceBias } from '@/config/source-bias';
 import { getPerspectiveLens, subscribePerspective, lensMatchesBias } from '@/services/perspective-store';
+import { getFocusMatcher, subscribeCountryFocus } from '@/services/country-focus-store';
 import { t, getCurrentLanguage } from '@/services/i18n';
 import { track } from '@/services/analytics';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
@@ -72,8 +73,9 @@ export class NewsPanel extends Panel {
   private lastRawItems: NewsItem[] | null = null;
   private relatedAssetTableRefreshPending = false;
 
-  // Political perspective lens (politics variant only)
+  // Political perspective lens + country focus (politics variant only)
   private unsubscribePerspective: (() => void) | null = null;
+  private unsubscribeCountryFocus: (() => void) | null = null;
 
   /**
    * How much of this category's enabled source list the panel is actually
@@ -119,15 +121,17 @@ export class NewsPanel extends Panel {
     this.setupContentDelegation();
 
     if (SITE_VARIANT === 'politics') {
-      // Lens switches re-rank the cached data in place — same pattern as the
-      // sort toggle. Data reloads are never needed: the lens only reorders.
-      this.unsubscribePerspective = subscribePerspective(() => {
+      // Lens and country-focus switches re-rank the cached data in place —
+      // same pattern as the sort toggle. No data reloads: both only reorder.
+      const rerender = () => {
         if (this.lastRawClusters) {
           this.renderClusters(this.lastRawClusters);
         } else if (this.lastRawItems) {
           this.renderFlat(this.lastRawItems);
         }
-      });
+      };
+      this.unsubscribePerspective = subscribePerspective(rerender);
+      this.unsubscribeCountryFocus = subscribeCountryFocus(rerender);
     }
   }
 
@@ -555,6 +559,23 @@ export class NewsPanel extends Panel {
     return [...matching, ...rest];
   }
 
+  /**
+   * Country focus (politics only): stable re-rank that surfaces stories
+   * matching the focused country first. Applied AFTER the perspective rank,
+   * so focus is the primary partition and the lens orders within it. Same
+   * contract as the lens: a lens, never a filter — nothing is dropped.
+   */
+  private applyCountryFocusRank<T>(list: T[], titleOf: (entry: T) => string): T[] {
+    if (SITE_VARIANT !== 'politics') return list;
+    const matches = getFocusMatcher();
+    const matching: T[] = [];
+    const rest: T[] = [];
+    for (const entry of list) {
+      (matches(titleOf(entry)) ? matching : rest).push(entry);
+    }
+    return [...matching, ...rest];
+  }
+
   /** Small colored dot showing the source's 5-point bias rating (politics only). */
   private renderBiasDot(sourceName: string): string {
     if (SITE_VARIANT !== 'politics') return '';
@@ -582,6 +603,7 @@ export class NewsPanel extends Panel {
     }
 
     sorted = this.applyPerspectiveRank(sorted, item => item.source);
+    sorted = this.applyCountryFocusRank(sorted, item => item.title);
 
     this.setCount(sorted.length);
     const topItems = sorted
@@ -625,19 +647,22 @@ export class NewsPanel extends Panel {
     this.lastRawItems = null;
 
     // Sort based on user preference (#107)
-    const sorted = this.applyPerspectiveRank(
-      [...clusters].sort((a, b) => {
-        if (this.sortMode === 'newest') {
-          // Pure chronological, newest first
+    const sorted = this.applyCountryFocusRank(
+      this.applyPerspectiveRank(
+        [...clusters].sort((a, b) => {
+          if (this.sortMode === 'newest') {
+            // Pure chronological, newest first
+            return b.lastUpdated.getTime() - a.lastUpdated.getTime();
+          }
+          // Default: threat priority first, then recency within same level
+          const pa = THREAT_PRIORITY[a.threat?.level ?? 'info'];
+          const pb = THREAT_PRIORITY[b.threat?.level ?? 'info'];
+          if (pb !== pa) return pb - pa;
           return b.lastUpdated.getTime() - a.lastUpdated.getTime();
-        }
-        // Default: threat priority first, then recency within same level
-        const pa = THREAT_PRIORITY[a.threat?.level ?? 'info'];
-        const pb = THREAT_PRIORITY[b.threat?.level ?? 'info'];
-        if (pb !== pa) return pb - pa;
-        return b.lastUpdated.getTime() - a.lastUpdated.getTime();
-      }),
-      cluster => cluster.primarySource,
+        }),
+        cluster => cluster.primarySource,
+      ),
+      cluster => cluster.primaryTitle,
     );
 
     const totalItems = sorted.reduce((sum, c) => sum + c.sourceCount, 0);
@@ -997,9 +1022,11 @@ export class NewsPanel extends Panel {
     this.windowedList?.destroy();
     this.windowedList = null;
 
-    // Unsubscribe from the perspective lens store
+    // Unsubscribe from the perspective lens and country focus stores
     this.unsubscribePerspective?.();
     this.unsubscribePerspective = null;
+    this.unsubscribeCountryFocus?.();
+    this.unsubscribeCountryFocus = null;
 
     // Remove activity tracking listeners
     if (this.boundScrollHandler) {

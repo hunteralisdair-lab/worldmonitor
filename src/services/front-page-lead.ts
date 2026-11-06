@@ -1,4 +1,5 @@
 import type { NewsItem } from '@/types';
+import { tokenizeForMatch, matchesAnyKeyword } from '@/utils/keyword-match';
 
 /**
  * Front-page lead selection (politics variant).
@@ -39,10 +40,22 @@ function tokenOverlap(a: Set<string>, b: Set<string>): number {
 
 const NEAR_DUPLICATE_OVERLAP = 0.5;
 
+export interface SelectLeadStoriesOptions {
+  /**
+   * Country-focus terms (lowercased): candidates whose titles match are
+   * stable-partitioned FIRST, so a focused country's stories fill the slots
+   * before global ones backfill. Selection rules (one per category, one per
+   * publisher, no near-duplicates) apply across the whole ordering.
+   */
+  focusTerms?: string[];
+  maxStories?: number;
+}
+
 export function selectLeadStories(
   newsByCategory: Record<string, NewsItem[]>,
-  maxStories = 4,
+  options: SelectLeadStoriesOptions = {},
 ): LeadStory[] {
+  const maxStories = options.maxStories ?? 4;
   const candidates: LeadStory[] = [];
   for (const [category, items] of Object.entries(newsByCategory)) {
     for (const item of items) {
@@ -58,6 +71,18 @@ export function selectLeadStories(
     if (sb !== sa) return sb - sa;
     return new Date(b.item.pubDate).getTime() - new Date(a.item.pubDate).getTime();
   });
+
+  const focusTerms = options.focusTerms ?? [];
+  if (focusTerms.length > 0) {
+    const matching: LeadStory[] = [];
+    const rest: LeadStory[] = [];
+    for (const candidate of candidates) {
+      (matchesAnyKeyword(tokenizeForMatch(candidate.item.title), focusTerms) ? matching : rest)
+        .push(candidate);
+    }
+    candidates.length = 0;
+    candidates.push(...matching, ...rest);
+  }
 
   const chosen: LeadStory[] = [];
   const usedCategories = new Set<string>();

@@ -24,6 +24,7 @@ import {
 } from '@/config';
 import { resolveNewsCategories, enabledNewsCategoryKeys, type ResolvedCategory } from '@/config/feed-resolution';
 import { selectLeadStories } from '@/services/front-page-lead';
+import { getCountryFocus, getFocusTerms, subscribeCountryFocus } from '@/services/country-focus-store';
 import {
   countRepresentedSources,
   mergeRotatedNewsItems,
@@ -425,6 +426,7 @@ export class DataLoaderManager implements AppModule {
   private globalTenderFilters: GlobalTenderFilters = {};
   private dailyBriefFrameworkUnsubscribe: (() => void) | null = null;
   private marketImplicationsFrameworkUnsubscribe: (() => void) | null = null;
+  private countryFocusUnsubscribe: (() => void) | null = null;
   private cachedSatRecs: SatRecEntry[] | null = null;
   private loadAllDataPromise: Promise<void> | null = null;
   private loadAllDataRerunRequested = false;
@@ -558,6 +560,12 @@ export class DataLoaderManager implements AppModule {
     this.marketImplicationsFrameworkUnsubscribe = subscribeFrameworkChange('market-implications', () => {
       void this.loadMarketImplications();
     });
+
+    // Country focus (politics): a focus change re-selects the front-page
+    // lead from the already-loaded categories — one pass, no refetch.
+    this.countryFocusUnsubscribe = subscribeCountryFocus(() => {
+      this.pushFrontPageLead();
+    });
   }
 
   destroy(): void {
@@ -573,6 +581,26 @@ export class DataLoaderManager implements AppModule {
     this.dailyBriefFrameworkUnsubscribe = null;
     this.marketImplicationsFrameworkUnsubscribe?.();
     this.marketImplicationsFrameworkUnsubscribe = null;
+    this.countryFocusUnsubscribe?.();
+    this.countryFocusUnsubscribe = null;
+  }
+
+  /**
+   * Politics broadsheet: the lead zone renders from the same digest items
+   * the panels already received — no extra fetch. Only categories with an
+   * enabled panel qualify (the digest also carries panel-less categories,
+   * whose stories would give "More coverage" nowhere to go), and the
+   * current country focus partitions its matching stories first.
+   */
+  private pushFrontPageLead(): void {
+    if (!this.ctx.frontPageLead) return;
+    const visibleCategories = Object.fromEntries(
+      Object.entries(this.ctx.newsByCategory)
+        .filter(([key]) => this.ctx.panelSettings[key]?.enabled),
+    );
+    this.ctx.frontPageLead.setStories(selectLeadStories(visibleCategories, {
+      focusTerms: getFocusTerms(getCountryFocus()),
+    }));
   }
 
   private getAuthoritativeCachedRiskScores(): CachedRiskScores | null {
@@ -1901,19 +1929,7 @@ export class DataLoaderManager implements AppModule {
 
     this.ctx.map?.updateHotspotActivity(this.ctx.allNews);
 
-    // Politics broadsheet: the lead zone renders from the same digest items
-    // the panels just received — no extra fetch, direct call (the zone mounts
-    // with the shell, before any load pass, so no pending-queue is needed).
-    // Only categories with an enabled panel qualify: the digest also carries
-    // panel-less categories (e.g. 'crisis' on politics), whose stories would
-    // give the lead zone a "More coverage" link with nowhere to go.
-    if (this.ctx.frontPageLead) {
-      const visibleCategories = Object.fromEntries(
-        Object.entries(this.ctx.newsByCategory)
-          .filter(([key]) => this.ctx.panelSettings[key]?.enabled),
-      );
-      this.ctx.frontPageLead.setStories(selectLeadStories(visibleCategories));
-    }
+    this.pushFrontPageLead();
 
     this.updateMonitorResults();
 

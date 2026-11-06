@@ -216,7 +216,7 @@
 
     <!-- Theme: apply stored preference before first paint to prevent FOUC. -->
     <script data-wm-map-prepaint>(function(){var mapCollapsed=true;try{mapCollapsed=localStorage.getItem('mobile-map-collapsed')!=='false';}catch(e){}if(mapCollapsed)document.documentElement.classList.add('wm-map-collapsed');else document.documentElement.classList.remove('wm-map-collapsed');})()</script>
-    <script data-wm-prepaint>(function(){try{var h=location.hostname;var v;if(h.startsWith('happy.'))v='happy';else if(h.startsWith('tech.'))v='tech';else if(h.startsWith('finance.'))v='finance';else if(h.startsWith('commodity.'))v='commodity';else if(h.startsWith('energy.'))v='energy';if(!v&&(h==='localhost'||h==='127.0.0.1'||'__TAURI_INTERNALS__' in window))v=localStorage.getItem('worldmonitor-variant');if(v)document.documentElement.dataset.variant=v;else document.documentElement.removeAttribute('data-variant');var t=localStorage.getItem('worldmonitor-theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}else if(v==='happy'){document.documentElement.dataset.theme='light';}var mapCollapsed=localStorage.getItem('mobile-map-collapsed')!=='false';if(mapCollapsed)document.documentElement.classList.add('wm-map-collapsed');var dismissKey='wm-pro-banner-launched-dismissed';var legacyDismissKey='wm-pro-banner-dismissed';localStorage.removeItem(legacyDismissKey);var ts=Number(localStorage.getItem(dismissKey)||0);var dismissed=ts>0&&Date.now()-ts<=604800000;if(ts>0&&!dismissed)localStorage.removeItem(dismissKey);var entitledHint=localStorage.getItem('wm-entitlement-hint')==='pro';if(window.self===window.top&&!dismissed&&!entitledHint)document.documentElement.classList.add('wm-pro-banner-reserved');}catch(e){}document.documentElement.classList.add('no-transition');document.documentElement.classList.add('js');})()</script>
+    <script data-wm-prepaint>(function(){try{var h=location.hostname;var v;if(h.startsWith('happy.'))v='happy';else if(h.startsWith('tech.'))v='tech';else if(h.startsWith('finance.'))v='finance';else if(h.startsWith('commodity.'))v='commodity';else if(h.startsWith('energy.'))v='energy';if(!v&&(h==='localhost'||h==='127.0.0.1'||'__TAURI_INTERNALS__' in window))v=localStorage.getItem('worldmonitor-variant');if(v)document.documentElement.dataset.variant=v;else document.documentElement.removeAttribute('data-variant');var t=localStorage.getItem('worldmonitor-theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}else if(v==='happy'||v==='politics'){document.documentElement.dataset.theme='light';}var mapCollapsed=localStorage.getItem('mobile-map-collapsed')!=='false';if(mapCollapsed)document.documentElement.classList.add('wm-map-collapsed');var dismissKey='wm-pro-banner-launched-dismissed';var legacyDismissKey='wm-pro-banner-dismissed';localStorage.removeItem(legacyDismissKey);var ts=Number(localStorage.getItem(dismissKey)||0);var dismissed=ts>0&&Date.now()-ts<=604800000;if(ts>0&&!dismissed)localStorage.removeItem(dismissKey);var entitledHint=localStorage.getItem('wm-entitlement-hint')==='pro';if(window.self===window.top&&!dismissed&&!entitledHint)document.documentElement.classList.add('wm-pro-banner-reserved');}catch(e){}document.documentElement.classList.add('no-transition');document.documentElement.classList.add('js');})()</script>
     <!-- Critical CSS: inline skeleton visible before JS boots -->
     <style>
       :root{--wm-pro-banner-slot-height:40px;--dashboard-panel-row-min:200px;--dashboard-panel-row-max:380px;--dashboard-grid-gap:4px;--dashboard-first-grid-reservation:calc(var(--dashboard-panel-row-min) + var(--dashboard-panel-row-min) + var(--dashboard-grid-gap))}
@@ -417,13 +417,57 @@
         [data-variant="politics"] .skeleton-mainrow{flex:1;display:flex;flex-direction:row;align-items:stretch;min-height:0;overflow:hidden}
         [data-variant="politics"] .skeleton-mainrow .skeleton-main{flex:1 1 0;min-width:0}
         [data-variant="politics"] .skeleton-sidenav{display:block;flex:0 0 170px;background:#1d1710;border-right:1px solid #382d1f}
-        /* Broadsheet parity: the hydrated politics shell is lead zone (280px)
-           -> compact map band (220px) -> grid, so the skeleton reserves the
-           lead box via ::before and pins the map band to the same 220px.
-           Heights must stay byte-equal to the main.css politics rules — the
-           boot-shell footprint warner budgets 2px. */
-        [data-variant="politics"] .skeleton-main::before{content:"";flex:none;height:280px;box-sizing:border-box;border-bottom:1px solid #382d1f;background:#1b1510}
-        [data-variant="politics"] .skeleton-map{height:220px;min-height:220px;max-height:220px}
+        /* Split-hero parity: the hydrated politics shell is lead zone (60%,
+           420px) beside the map (40%, 420px), then the full-width grid. The
+           skeleton mirrors it as a flex row-wrap: ::before reserves the lead
+           cell, .skeleton-map takes the right cell. Sizes must stay equal to
+           the main.css politics hero rules — the boot-shell footprint warner
+           budgets 2px, both sides border-box. */
+        [data-variant="politics"] .skeleton-main{flex-direction:row;flex-wrap:wrap;align-content:flex-start}
+        [data-variant="politics"] .skeleton-main::before{content:"";flex:0 0 60%;height:420px;box-sizing:border-box;border-right:1px solid #382d1f;border-bottom:1px solid #382d1f;background:#1b1510}
+        [data-variant="politics"] .skeleton-map{flex:0 0 40%;height:420px;min-height:420px;max-height:420px;box-sizing:border-box}
+        [data-variant="politics"] .skeleton-grid{flex:1 1 100%}
+      }
+
+      /* ---------- skeleton shell (politics variant — light parchment) ----------
+         Politics defaults to light (paper-first). This block must FOLLOW the
+         politics dark block: both carry [data-variant], so the extra
+         [data-theme] attribute (0,3,0) is what lets light win — the generic
+         light rules above lose to the politics block on source order. */
+      html[data-variant="politics"][data-theme="light"],[data-variant="politics"][data-theme="light"] body{background:#f5efe3}
+      [data-variant="politics"][data-theme="light"].wm-pro-banner-reserved #app::before{background:#fbf7ee;border-bottom-color:#d9cdb2}
+      [data-variant="politics"][data-theme="light"] .skeleton-shell{background:#f5efe3}
+      [data-variant="politics"][data-theme="light"] .skeleton-header{background:#fbf7ee;border-bottom-color:#d9cdb2}
+      [data-variant="politics"][data-theme="light"] .skeleton-brand{color:#2c2518}
+      [data-variant="politics"][data-theme="light"] .skeleton-brand-mark{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='%237c5e14'><path d='M50 8 L92 31 L8 31 Z'/><rect x='13' y='35' width='74' height='6' rx='1.5'/><rect x='18' y='47' width='10' height='28' rx='1.5'/><rect x='36.5' y='47' width='10' height='28' rx='1.5'/><rect x='55' y='47' width='10' height='28' rx='1.5'/><rect x='73.5' y='47' width='10' height='28' rx='1.5'/><rect x='13' y='81' width='74' height='6' rx='1.5'/><rect x='7' y='91' width='86' height='6' rx='1.5'/></g></svg>")}
+      [data-variant="politics"][data-theme="light"] .skeleton-kicker{color:#6e6450}
+      [data-variant="politics"][data-theme="light"] .skeleton-chip{color:#4a4132;background:#efe8d7;border-color:#d9cdb2}
+      [data-variant="politics"][data-theme="light"] .skeleton-chip.live{color:#7c5e14;background:#f1ead9;border-color:#bfb093}
+      [data-variant="politics"][data-theme="light"] .skeleton-pill{background:#efe8d7}
+      [data-variant="politics"][data-theme="light"] .skeleton-dot{background:#a97f10}
+      [data-variant="politics"][data-theme="light"] .skeleton-tabs{background:#fbf7ee;border-bottom-color:#d9cdb2}
+      [data-variant="politics"][data-theme="light"] .skeleton-main{background:#f5efe3}
+      [data-variant="politics"][data-theme="light"] .skeleton-map{border-color:#d9cdb2;background:#e9e0c9}
+      [data-variant="politics"][data-theme="light"] .skeleton-map-bar{background:#fbf7ee;border-bottom-color:#d9cdb2}
+      [data-variant="politics"][data-theme="light"] .skeleton-section-label{color:#2c2518}
+      [data-variant="politics"][data-theme="light"] .skeleton-section-note{color:#6e6450}
+      [data-variant="politics"][data-theme="light"] .skeleton-map-body::after{background:radial-gradient(ellipse 60% 50% at 50% 50%,#d6c9a8 0%,#e9e0c9 100%)}
+      [data-variant="politics"][data-theme="light"] .skeleton-map-content{border-color:rgba(124,94,20,.26);background:rgba(251,247,238,.88);box-shadow:0 18px 60px rgba(90,70,30,.14)}
+      [data-variant="politics"][data-theme="light"] .skeleton-map-eyebrow{color:#7c5e14}
+      [data-variant="politics"][data-theme="light"] .skeleton-map-eyebrow::before{background-image:url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><g fill='%237c5e14'><path d='M50 8 L92 31 L8 31 Z'/><rect x='13' y='35' width='74' height='6' rx='1.5'/><rect x='18' y='47' width='10' height='28' rx='1.5'/><rect x='36.5' y='47' width='10' height='28' rx='1.5'/><rect x='55' y='47' width='10' height='28' rx='1.5'/><rect x='73.5' y='47' width='10' height='28' rx='1.5'/><rect x='13' y='81' width='74' height='6' rx='1.5'/><rect x='7' y='91' width='86' height='6' rx='1.5'/></g></svg>")}
+      [data-variant="politics"][data-theme="light"] .skeleton-map-title{color:#2c2518}
+      [data-variant="politics"][data-theme="light"] .skeleton-map-copy{color:#4a4132}
+      [data-variant="politics"][data-theme="light"] .skeleton-panel{background:#fbf7ee;border-color:#d9cdb2}
+      [data-variant="politics"][data-theme="light"] .skeleton-panel-header{border-bottom-color:#e9e0cc}
+      [data-variant="politics"][data-theme="light"] .skeleton-panel-title{color:#2c2518}
+      [data-variant="politics"][data-theme="light"] .skeleton-panel-kicker{color:#7c5e14}
+      [data-variant="politics"][data-theme="light"] .skeleton-panel-copy{color:#4a4132}
+      [data-variant="politics"][data-theme="light"] .skeleton-panel-metric{color:#2c2518}
+      [data-variant="politics"][data-theme="light"] .skeleton-panel-metric span{color:#6e6450}
+      [data-variant="politics"][data-theme="light"] .skeleton-line{background:linear-gradient(90deg,rgba(124,94,20,.06) 25%,rgba(124,94,20,.12) 50%,rgba(124,94,20,.06) 75%);background-size:200% 100%;animation:skel-shimmer 1.5s infinite}
+      @media (min-width:769px){
+        [data-variant="politics"][data-theme="light"] .skeleton-sidenav{background:#fbf7ee;border-right-color:#d9cdb2}
+        [data-variant="politics"][data-theme="light"] .skeleton-main::before{border-right-color:#d9cdb2;border-bottom-color:#d9cdb2;background:#efe7d6}
       }
 
       @media (max-width:768px){

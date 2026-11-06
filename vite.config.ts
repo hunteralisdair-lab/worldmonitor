@@ -244,11 +244,17 @@ function htmlVariantPlugin(activeMeta: VariantMeta, activeVariant: string, isDes
         .replace(/"description": "Real-time global intelligence dashboard with live news, markets, military tracking, infrastructure monitoring, and geopolitical data."/, `"description": "${activeMeta.description}"`)
         .replace(/"featureList": \[[\s\S]*?\]/, `"featureList": ${JSON.stringify(activeMeta.features, null, 8).replace(/\n/g, '\n      ')}`);
 
-      // Theme-color meta — warm cream for happy variant
+      // Theme-color meta — warm cream for happy, parchment for politics
       if (activeVariant === 'happy') {
         result = result.replace(
           /<meta name="theme-color" content=".*?" \/>/,
           '<meta name="theme-color" content="#FAFAF5" />'
+        );
+      }
+      if (activeVariant === 'politics') {
+        result = result.replace(
+          /<meta name="theme-color" content=".*?" \/>/,
+          '<meta name="theme-color" content="#f5efe3" />'
         );
       }
 

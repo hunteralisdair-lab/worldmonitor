@@ -39,6 +39,8 @@ import { collectStoryData } from '@/services/story-data';
 
 import { hasPremiumAccess } from '@/services/panel-gating';
 import { getAuthState, subscribeAuthState } from '@/services/auth-state';
+import { SITE_VARIANT } from '@/config';
+import { getCountryFocus, setCountryFocus, subscribeCountryFocus } from '@/services/country-focus-store';
 import { showMapContextMenu } from '@/components/MapContextMenu';
 import { BETA_MODE } from '@/config/beta';
 import { mlWorker } from '@/services/ml-worker';
@@ -105,6 +107,7 @@ export class CountryIntelManager implements AppModule {
   // entitlement so unrelated auth events (session refresh, prefs sync)
   // don't re-hammer fetchProSections.
   private authUnsubscribe: (() => void) | null = null;
+  private countryFocusUnsubscribe: (() => void) | null = null;
   private lastHadPremium = false;
   private countryBriefPageLoading: Promise<boolean> | null = null;
 
@@ -151,6 +154,8 @@ export class CountryIntelManager implements AppModule {
     this.frameworkUnsubscribe = null;
     this.authUnsubscribe?.();
     this.authUnsubscribe = null;
+    this.countryFocusUnsubscribe?.();
+    this.countryFocusUnsubscribe = null;
   }
 
   private handleCountryBriefOpenError(err: unknown): void {
@@ -161,7 +166,18 @@ export class CountryIntelManager implements AppModule {
 
   private async setupCountryIntel(): Promise<void> {
     if (!this.ctx.map) return;
+    // Politics desktop: the map is the NAVIGATOR — clicking a country
+    // re-focuses the whole page (front-page lead + news panels) instead of
+    // opening the Country Brief. The brief stays reachable from its other
+    // entry points (search, CII panel, context menu, deep links). Mobile
+    // politics and every other variant keep the brief-on-click behavior.
+    const politicsFocusNav = SITE_VARIANT === 'politics' && !this.ctx.isMobile;
     this.ctx.map.onCountryClicked((countryClick) => {
+      if (politicsFocusNav && countryClick.code && countryClick.name) {
+        trackCountrySelected(countryClick.code, countryClick.name, 'map');
+        setCountryFocus({ code: countryClick.code, name: countryClick.name });
+        return;
+      }
       if (countryClick.code && countryClick.name) {
         trackCountrySelected(countryClick.code, countryClick.name, 'map');
         void this.openCountryBriefByCode(countryClick.code, countryClick.name)
@@ -171,6 +187,29 @@ export class CountryIntelManager implements AppModule {
           .catch((err) => this.handleCountryBriefOpenError(err));
       }
     });
+
+    if (politicsFocusNav) {
+      // Keep the map glued to the focus: highlight + frame on every change.
+      this.countryFocusUnsubscribe = subscribeCountryFocus((focus) => {
+        this.ctx.map?.highlightCountry(focus.code);
+        this.ctx.map?.fitCountry(focus.code);
+      });
+      // Boot framing on the persisted focus via the QUEUED setCenter path
+      // (fitCountry is a no-op before the renderer exists, and
+      // whenRendererReady would force-load DeckGL and regress LCP).
+      const focus = getCountryFocus();
+      const bounds = CountryIntelManager.COUNTRY_BOUNDS[focus.code];
+      if (bounds) {
+        const lat = (bounds.n + bounds.s) / 2;
+        const lon = (bounds.e + bounds.w) / 2;
+        // Half a step wider than a tight fit: the hero map is the country
+        // NAVIGATOR, so neighbors must stay clickable at boot.
+        const span = Math.max(bounds.n - bounds.s, bounds.e - bounds.w);
+        const zoom = span > 25 ? 2.5 : span > 8 ? 3.5 : 4.5;
+        this.ctx.map.setCenter(lat, lon, zoom);
+        this.ctx.map.highlightCountry(focus.code);
+      }
+    }
 
     this.ctx.map.onMapContextMenu((payload) => {
       const items = [];

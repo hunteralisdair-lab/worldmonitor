@@ -317,3 +317,87 @@
 :root[data-variant="politics"] .panel[data-panel="politics"] .item-title {
   font-size: calc(14px * var(--wm-panel-effective-scale, 1));
 }
+
+/* ---------- Paper card panels (editorial restyle; paint-only) ----------
+   The chrome strip lives in main.css (pre-paint, geometry-affecting);
+   everything here is color/typography on the stripped result. */
+:root[data-variant="politics"] .panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+/* Quiet header: no overlay wash, hairline rule only. The header stays the
+   drag handle — layout and pointer behavior untouched. Scoped to .panel so
+   the map-section header keeps its own styling; deferred shells carry the
+   same classes and match identically. */
+:root[data-variant="politics"] .panel > .panel-header {
+  background: none;
+  border-bottom: 1px solid var(--border);
+}
+/* Serif small-caps section masthead (panel titles are mixed-case strings;
+   the base uppercase transform is undone so small-caps can render). */
+:root[data-variant="politics"] .panel-title {
+  font-variant-caps: small-caps;
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  color: var(--text);
+}
+/* Items: hairline rules between stories, no colored edges */
+:root[data-variant="politics"] .panel .item {
+  border-bottom: 1px solid var(--border-subtle);
+}
+:root[data-variant="politics"] .item-time {
+  color: var(--text-faint);
+}
+:root[data-variant="politics"] .item-source {
+  color: var(--text-dim);
+  letter-spacing: 0.4px;
+}
+/* Corroborating sources read as plain attribution, not neon chips */
+:root[data-variant="politics"] .top-source {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-dim);
+}
+:root[data-variant="politics"] .also-reported {
+  color: var(--text-faint);
+  font-style: italic;
+}
+:root[data-variant="politics"] .source-count {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+}
+/* .lang-badge's base rule leans on an undefined --surface-light; give it
+   real theme tokens on politics. */
+:root[data-variant="politics"] .lang-badge {
+  background: var(--surface-active);
+  color: var(--text-dim);
+  border-color: var(--border);
+}
+/* Quiet but discoverable controls */
+:root[data-variant="politics"] .panel-sort-btn,
+:root[data-variant="politics"] .panel-summarize-btn,
+:root[data-variant="politics"] .item-translate-btn {
+  background: none;
+  border-color: transparent;
+  color: var(--text-faint);
+}
+:root[data-variant="politics"] .panel-sort-btn:hover,
+:root[data-variant="politics"] .panel-summarize-btn:hover,
+:root[data-variant="politics"] .item-translate-btn:hover {
+  color: var(--accent);
+  border-color: var(--border);
+}
+
+/* Focus bar typography (geometry in main.css): serif masthead strip */
+:root[data-variant="politics"] .lead-focus-bar {
+  font-family: var(--font-serif);
+  font-variant-caps: small-caps;
+  color: var(--text-dim);
+}
+:root[data-variant="politics"] .lead-focus-bar-active .lead-focus-label {
+  color: var(--accent);
+}

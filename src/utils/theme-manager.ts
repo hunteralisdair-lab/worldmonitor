@@ -1,4 +1,5 @@
 import { invalidateColorCache } from './theme-colors';
+import { SITE_VARIANT } from '@/config/variant';
 
 export type Theme = 'dark' | 'light';
 export type ThemePreference = 'auto' | 'dark' | 'light';
@@ -7,8 +8,14 @@ const STORAGE_KEY = 'worldmonitor-theme';
 const DEFAULT_THEME: Theme = 'dark';
 
 function resolveThemeColor(theme: Theme, variant: string | undefined): string {
-  if (theme === 'dark') return variant === 'happy' ? '#1A2332' : '#0a0f0a';
-  return variant === 'happy' ? '#FAFAF5' : '#f8f9fa';
+  if (theme === 'dark') {
+    if (variant === 'happy') return '#1A2332';
+    if (variant === 'politics') return '#16110c';
+    return '#0a0f0a';
+  }
+  if (variant === 'happy') return '#FAFAF5';
+  if (variant === 'politics') return '#f5efe3';
+  return '#f8f9fa';
 }
 
 function updateThemeMetaColor(theme: Theme, variant = document.documentElement.dataset.variant): void {
@@ -102,7 +109,10 @@ export function setTheme(theme: Theme): void {
  * This is a safety net for cases where the inline script didn't run.
  */
 export function applyStoredTheme(): void {
-  const variant = document.documentElement.dataset.variant;
+  // dataset.variant is set by the prepaint script, but not in every context
+  // (the standalone settings window never sets it; main.ts used to set it
+  // after this ran) — SITE_VARIANT is the authoritative fallback.
+  const variant = document.documentElement.dataset.variant || SITE_VARIANT;
 
   // Check raw localStorage to distinguish "no preference" from "explicitly chose dark"
   let raw: string | null = null;
@@ -115,8 +125,9 @@ export function applyStoredTheme(): void {
   } else if (hasExplicitPreference) {
     effective = raw as Theme;
   } else {
-    // No stored preference: happy defaults to light, others to dark
-    effective = variant === 'happy' ? 'light' : DEFAULT_THEME;
+    // No stored preference: happy and politics default to light (politics is
+    // paper-first), others to dark
+    effective = (variant === 'happy' || variant === 'politics') ? 'light' : DEFAULT_THEME;
   }
 
   document.documentElement.dataset.theme = effective;

@@ -2085,6 +2085,13 @@ export class EventHandlerManager implements AppModule {
   }
 
   setupMapResize(): void {
+    // Politics desktop: the map lives in the fixed 420px split hero — an
+    // inline height (saved or dragged) would desync the hero row, so the
+    // whole restore+drag wiring is off and any stale saved height dies.
+    if (SITE_VARIANT === 'politics' && !this.ctx.isMobile) {
+      removeStorageValue('map-height');
+      return;
+    }
     const mapSection = document.getElementById('mapSection');
     const mapContainer = document.getElementById('mapContainer');
     const resizeHandle = document.getElementById('mapResizeHandle');

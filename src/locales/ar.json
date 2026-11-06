@@ -2698,7 +2698,10 @@
       "ariaLabel": "Lead stories",
       "more": "More coverage",
       "empty": "Front-page stories will appear as feeds load",
-      "sectionMore": "Also Today"
+      "sectionMore": "Also Today",
+      "masthead": "Front Page · {{country}}",
+      "viewing": "Viewing: {{country}}",
+      "backTo": "← Back to {{country}}"
     }
   },
   "popups": {
