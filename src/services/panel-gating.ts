@@ -38,6 +38,15 @@ const OPEN_ACCESS = (() => {
   }
 })();
 
+/**
+ * Whether this build disables premium gating wholesale. Exposed for the
+ * free-tier enforcement paths (panel clamp, 80-source cap, source toggle
+ * toasts) that key on isProUser() rather than hasPremiumAccess().
+ */
+export function isOpenAccessBuild(): boolean {
+  return OPEN_ACCESS;
+}
+
 export enum PanelGateReason {
   NONE = 'none',           // show content (pro user, or desktop with API key, or non-premium panel)
   ANONYMOUS = 'anonymous', // "Sign In to Unlock"

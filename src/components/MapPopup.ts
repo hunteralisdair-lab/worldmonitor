@@ -104,7 +104,7 @@ function fmtDelayMin(min: number | undefined): string {
   return `<span style="color:${min > 0 ? '#f97316' : '#22c55e'};font-size:calc(10px * var(--wm-panel-effective-scale, 1));margin-left:3px">${min > 0 ? '+' : ''}${min}m</span>`;
 }
 
-export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'aircraft' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub' | 'iranEvent' | 'gpsJamming' | 'radiation';
+export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'aircraft' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub' | 'iranEvent' | 'gpsJamming' | 'radiation' | 'constituency';
 
 interface TechEventPopupData {
   id: string;
@@ -231,9 +231,20 @@ interface DatacenterClusterData {
   sampled?: boolean;
 }
 
+/** UK constituency from the political-control layer (politics variant). */
+interface ConstituencyPopupData {
+  code: string;
+  name: string;
+  party: string;
+  partyAbbr: string | null;
+  mp: string | null;
+  partyHex: string;
+  stories: NewsItem[];
+}
+
 interface PopupData {
   type: PopupType;
-  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData | RadiationObservation;
+  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData | RadiationObservation | ConstituencyPopupData;
   relatedNews?: NewsItem[];
   x: number;
   y: number;
@@ -830,9 +841,38 @@ export class MapPopup {
         return this.renderGpsJammingPopup(data.data as GpsJammingPopupData);
       case 'radiation':
         return this.renderRadiationPopup(data.data as RadiationObservation);
+      case 'constituency':
+        return this.renderConstituencyPopup(data.data as ConstituencyPopupData);
       default:
         return '';
     }
+  }
+
+  private renderConstituencyPopup(c: ConstituencyPopupData): string {
+    const stories = c.stories.slice(0, 5);
+    return `
+      <div class="popup-header">
+        <span class="popup-title">&#127963; ${escapeHtml(c.name)}</span>
+        <span class="popup-badge" style="background:${escapeHtml(c.partyHex)};color:#fff">${escapeHtml(c.partyAbbr ?? c.party)}</span>
+        <button class="popup-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-subtitle">${escapeHtml(c.party)}${c.mp ? ` &mdash; ${escapeHtml(c.mp)} MP` : ''}</div>
+        <p class="popup-description">Current sitting MP (UK Parliament Members API) &mdash; reflects defections and by-elections, not the 2024 result.</p>
+        ${stories.length ? `
+        <div class="popup-section">
+          <div class="popup-news">
+            ${stories.map(n => `
+              <div class="popup-news-item">
+                <span class="news-source">${escapeHtml(n.source)}</span>
+                <a href="${sanitizeUrl(n.link)}" target="_blank" class="news-title">${escapeHtml(n.title)}</a>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ` : ''}
+      </div>
+    `;
   }
 
   private renderRadiationPopup(observation: RadiationObservation): string {

@@ -29,8 +29,10 @@ import {
   countRepresentedSources,
   mergeRotatedNewsItems,
   nextRotationCycle,
+  selectBiasBalancedFeedWindow,
   selectRotatingFeedWindow,
 } from '@/app/news-feed-rotation';
+import { getSourceBias } from '@/config/source-bias';
 import {
   runNewsLoadPass,
   newsWorkListSignature,
@@ -494,6 +496,14 @@ export class DataLoaderManager implements AppModule {
         workList: this.resolveEnabledNewsCategories().map(c => `${c.key}${c.isCustom ? ':custom' : ''}`),
       });
     }
+    // UK political findings feed the Intelligence Findings badge (petition
+    // surges, Commons division upsets, poll shifts). Lazy so the service and
+    // its APIs stay off every other variant's critical path.
+    if (SITE_VARIANT === 'politics' && typeof window !== 'undefined') {
+      void import('@/services/uk-political-signals')
+        .then(m => m.startUkPoliticalSignals())
+        .catch(err => console.warn('[UKSignals] init failed:', err));
+    }
   }
 
   private getHydrationTier(name: string): HydrationTier {
@@ -764,6 +774,27 @@ export class DataLoaderManager implements AppModule {
     return isFeatureEnabled('newsPerFeedFallback');
   }
 
+  /**
+   * Politics preset categories live on per-feed fallback permanently (the
+   * politics-only categories are never in the server digest), which turns the
+   * preset fixed-prefix cap into the same permanent-starvation defect #5873
+   * fixed for custom categories — compounded by feed lists ordered
+   * center-first, so the perspective lens's Left/Right ranks had nothing to
+   * promote. These categories rotate and accumulate like custom ones, with a
+   * bias-balanced window so every cycle covers each editorial side.
+   */
+  private presetRotatesWithBiasBalance(): boolean {
+    return SITE_VARIANT === 'politics';
+  }
+
+  /** Left-ish / center-or-unrated / right-ish bucket for the balanced window. */
+  private static biasBucketForFeed(feedName: string): number {
+    const bias = getSourceBias(feedName);
+    if (bias === 'left' || bias === 'center-left') return 0;
+    if (bias === 'center-right' || bias === 'right') return 2;
+    return 1;
+  }
+
   private getStaleNewsItems(category: string): NewsItem[] {
     const staleItems = this.ctx.newsByCategory[category];
     if (!Array.isArray(staleItems) || staleItems.length === 0) return [];
@@ -805,7 +836,9 @@ export class DataLoaderManager implements AppModule {
   private advanceNewsRotationCycle(category: string, feedCount: number): void {
     const keep = new Set(
       this.resolveEnabledNewsCategories()
-        .filter(({ isCustom }) => isCustom)
+        // Politics presets rotate too; pruning to custom-only would let each
+        // category's advance wipe every preset sibling's counter.
+        .filter(({ isCustom }) => isCustom || this.presetRotatesWithBiasBalance())
         .map(({ key }) => key),
     );
     keep.add(category);
@@ -1485,7 +1518,11 @@ export class DataLoaderManager implements AppModule {
       // before any render — renderNewsForCategory overwrites
       // ctx.newsByCategory, which is what getStaleNewsItems reads, so reading
       // it later would fold each partial render back into itself.
-      const carryOver = isCustom ? staleItems : [];
+      //
+      // Politics preset categories accumulate the same way: their fallback is
+      // the steady state, not an outage (presetRotatesWithBiasBalance).
+      const accumulates = isCustom || this.presetRotatesWithBiasBalance();
+      const carryOver = accumulates ? staleItems : [];
 
       /**
        * What to actually paint for a given set of freshly fetched items.
@@ -1496,7 +1533,7 @@ export class DataLoaderManager implements AppModule {
        * the badge describes what is actually visible.
        */
       const mergeForRender = (freshItems: NewsItem[]): NewsItem[] => {
-        if (!isCustom) return freshItems;
+        if (!accumulates) return freshItems;
         return mergeRotatedNewsItems(carryOver, freshItems, {
           maxItems: this.customCategoryMergedItemLimit,
           enabledSources: enabledNames,
@@ -1540,7 +1577,7 @@ export class DataLoaderManager implements AppModule {
         }
       };
 
-      if (!isCustom && staleItems.length > 0) {
+      if (!accumulates && staleItems.length > 0) {
         console.warn(`[News] Digest missing for "${category}", serving stale headlines (${staleItems.length})`);
         this.renderNewsForCategory(category, staleItems);
         this.ctx.statusPanel?.updateFeed(category.charAt(0).toUpperCase() + category.slice(1), {
@@ -1581,15 +1618,24 @@ export class DataLoaderManager implements AppModule {
       // unreachable on every load and every refresh (#5873). It rotates
       // instead: same request budget, advanced by the cap each cycle, so every
       // source is reached within ceil(N / cap) cycles.
-      const rotationCycle = isCustom ? this.newsRotationCycle(category) : 0;
+      const rotationCycle = accumulates ? this.newsRotationCycle(category) : 0;
       const fallbackFeeds = isCustom
         ? selectRotatingFeedWindow(reachableFeeds, this.perFeedFallbackCategoryFeedLimit, rotationCycle)
-        : this.selectLimitedFeeds(enabledFeeds, this.perFeedFallbackCategoryFeedLimit);
-      if (isCustom) {
+        : this.presetRotatesWithBiasBalance()
+          ? selectBiasBalancedFeedWindow(
+              enabledFeeds,
+              this.perFeedFallbackCategoryFeedLimit,
+              rotationCycle,
+              (feed) => DataLoaderManager.biasBucketForFeed(feed.name),
+            )
+          : this.selectLimitedFeeds(enabledFeeds, this.perFeedFallbackCategoryFeedLimit);
+      if (accumulates) {
         // Advanced as soon as the window is claimed rather than after the fetch
         // resolves, so a cycle that fails outright still moves on instead of
         // retrying the same failing window forever.
-        this.advanceNewsRotationCycle(category, reachableFeeds.length);
+        this.advanceNewsRotationCycle(category, (isCustom ? reachableFeeds : enabledFeeds).length);
+      }
+      if (isCustom) {
         console.warn(`[News] Custom category "${category}" (not in variant preset), fetching ${fallbackFeeds.length}/${reachableFeeds.length} feeds directly (rotation cycle ${rotationCycle})`);
       } else if (options.allowDigestPendingFallback) {
         console.warn(`[News] Digest still pending for "${category}", using limited per-feed fallback (${fallbackFeeds.length}/${enabledFeeds.length} feeds)`);

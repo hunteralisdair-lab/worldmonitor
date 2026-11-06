@@ -51,7 +51,7 @@ export interface AgentBusApplierOptions {
 }
 
 const DEFAULT_LAYER_RESULT: AgentBusApplyTargetResult[] = [];
-const MAP_VARIANTS = new Set<MapVariant>(['full', 'tech', 'finance', 'happy', 'commodity', 'energy']);
+const MAP_VARIANTS = new Set<MapVariant>(['full', 'tech', 'finance', 'happy', 'commodity', 'energy', 'politics']);
 
 function denied(message: string, reason: string, targets = DEFAULT_LAYER_RESULT, action?: DashboardControlAction): AgentBusApplyResult {
   return {

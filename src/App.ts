@@ -100,7 +100,7 @@ import type { NewsMarketCorrelationPanel } from '@/components/NewsMarketCorrelat
 import type { PositioningPanel } from '@/components/PositioningPanel';
 import type { GoldIntelligencePanel } from '@/components/GoldIntelligencePanel';
 import { isDesktopRuntime, waitForSidecarReady } from '@/services/runtime';
-import { hasPremiumAccess } from '@/services/panel-gating';
+import { hasPremiumAccess, isOpenAccessBuild } from '@/services/panel-gating';
 import { BETA_MODE } from '@/config/beta';
 import { track, trackEvent, trackDeeplinkOpened, initAuthAnalytics, trackMapViewChange } from '@/services/analytics';
 import { preloadCountryGeometry, isCountryGeometryLoaded, getCountryNameByCode } from '@/services/country-geometry';
@@ -2130,6 +2130,21 @@ export class App {
     // Phase 2: Shared UI components
     if (!this.state.isMobile) {
       void this.initFindingsBadge();
+    } else {
+      // Booted at mobile width: the badge never mounted, but the responsive
+      // layout can become desktop on resize (.header-right appears). Mount
+      // the badge the first time that happens instead of requiring a reload.
+      const mountOnDesktopResize = () => {
+        if (this.state.isDestroyed || this.state.findingsBadge) {
+          window.removeEventListener('resize', mountOnDesktopResize);
+          return;
+        }
+        if (window.innerWidth > 768 && document.querySelector('.header-right')) {
+          window.removeEventListener('resize', mountOnDesktopResize);
+          void this.initFindingsBadge();
+        }
+      };
+      window.addEventListener('resize', mountOnDesktopResize);
     }
 
     initBreakingNewsAlerts();
@@ -2654,7 +2669,9 @@ export class App {
       saveToStorage(STORAGE_KEYS.disabledFeedsSchema, 1);
     }
 
-    if (isProUser()) {
+    // Open-access builds (VITE_OPEN_ACCESS=1) take the Pro path: no panel
+    // clamp, and the 80-source cap's gate-owned disables are restored.
+    if (isProUser() || isOpenAccessBuild()) {
       this.freeTierGate.cancelFallback();
       const panelsChanged = this.restoreProGatedPanelsForTier(cloudSyncVersion);
       this.reconcileSourceLimitForTier(true);

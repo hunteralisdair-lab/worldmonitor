@@ -56,7 +56,9 @@ import type { ClimateAnomaly } from '@/services/climate';
 import type { RadiationObservation } from '@/services/radiation';
 import { ArcLayer } from '@deck.gl/layers';
 import type { WeatherAlert } from '@/services/weather';
-import { escapeHtml } from '@/utils/sanitize';
+import { escapeHtml, sanitizeUrl } from '@/utils/sanitize';
+import { getPerspectiveLens, lensMatchesBias, subscribePerspective } from '@/services/perspective-store';
+import { getSourceBias } from '@/config/source-bias';
 import {
   derivePipelinePublicBadge,
   type PipelineEvidenceInput,
@@ -158,6 +160,7 @@ import type { HappinessData } from '@/services/happiness-data';
 import type { RenewableInstallation } from '@/services/renewable-installations';
 import type { SpeciesRecovery } from '@/services/conservation-data';
 import { getCountriesGeoJson, getCountryAtCoordinates, getCountryBbox, getCountryCentroid } from '@/services/country-geometry';
+import { ukPartyHex, ukPartyRgba } from '@/config/uk-party-colors';
 import type { DiseaseOutbreakItem } from '@/services/disease-outbreaks';
 import type { FeatureCollection, Geometry } from 'geojson';
 import type { ResilienceRankingItem } from '@/services/resilience';
@@ -663,6 +666,19 @@ export class DeckGLMap {
   private culledCountriesGeoJson: GeoJSON.FeatureCollection | null = null;
   private culledCountriesContentKey = '';
 
+  // UK political-control choropleth (politics variant): static dataset from
+  // scripts/fetch-uk-political-control.mjs, fetched lazily on first toggle.
+  private politicalControlData: GeoJSON.FeatureCollection | null = null;
+  private politicalControlLoadState: 'idle' | 'loading' | 'failed' = 'idle';
+
+  // Regional stories rail (politics variant): appears when zoomed into the
+  // UK, listing mapped headlines matched to the constituencies in view.
+  private regionalRailEl: HTMLElement | null = null;
+  private regionalRailTimer: ReturnType<typeof setTimeout> | null = null;
+  private regionalRailDismissed = false;
+  private railPerspectiveUnsub: (() => void) | null = null;
+  private politicalCentroids: Array<{ lon: number; lat: number; name: string; mp: string | null; code: string; towns: string[] }> | null = null;
+
   // CII choropleth data
   private ciiScoresMap: Map<string, { score: number; level: string }> = new Map();
   private ciiScoresVersion = 0;
@@ -994,6 +1010,10 @@ export class DeckGLMap {
         type: 'raster',
         tiles: [this.radarTileUrl],
         tileSize: 256,
+        // RainViewer's 256px radar composite ends at z7; beyond that the CDN
+        // serves a literal "Zoom Level Not Supported" watermark tile. Capping
+        // the source makes MapLibre overzoom the z7 tiles instead.
+        maxzoom: 7,
         attribution: '© RainViewer',
       });
       const beforeId = this.maplibreMap.getLayer('country-interactive') ? 'country-interactive' : undefined;
@@ -1267,6 +1287,7 @@ export class DeckGLMap {
         if (this.imagerySearchTimer) clearTimeout(this.imagerySearchTimer);
         this.imagerySearchTimer = setTimeout(() => this.fetchImageryForViewport(), 500);
       }
+      this.scheduleRegionalRailUpdate();
     });
 
     this.maplibreMap.on('move', () => {
@@ -2222,6 +2243,12 @@ export class DeckGLMap {
     if (mapLayers.happiness) {
       const choropleth = this.createHappinessChoroplethLayer();
       if (choropleth) layers.push(choropleth);
+    }
+    // UK political control choropleth (politics variant)
+    if (mapLayers.politicalControl) {
+      const pcLayer = this.createPoliticalControlLayer();
+      if (pcLayer) layers.push(pcLayer);
+      else this.ensurePoliticalControlData();
     }
     // CII choropleth (country instability heat-map)
     if (mapLayers.ciiChoropleth) {
@@ -4552,6 +4579,226 @@ export class DeckGLMap {
     });
   }
 
+  /** Lazy one-shot fetch of the static UK political-control dataset. */
+  private ensurePoliticalControlData(): void {
+    if (this.politicalControlLoadState !== 'idle') return;
+    this.politicalControlLoadState = 'loading';
+    fetch('/data/uk-political-control.json')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<GeoJSON.FeatureCollection>;
+      })
+      .then((geojson) => {
+        this.politicalControlData = geojson;
+        this.politicalCentroids = null;
+        this.render();
+        this.scheduleRegionalRailUpdate();
+      })
+      .catch((err) => {
+        this.politicalControlLoadState = 'failed';
+        console.warn('[DeckGLMap] political-control dataset failed to load:', err);
+      });
+  }
+
+  // ── Regional stories rail (politics variant) ─────────────────────────────
+
+  /** Rough UK extent: the rail only exists when the viewport overlaps it. */
+  private static readonly UK_BBOX = { west: -8.9, south: 49.7, east: 1.9, north: 61.0 };
+  private static readonly REGIONAL_RAIL_MIN_ZOOM = 5.3;
+  private static readonly REGIONAL_RAIL_MAX_STORIES = 8;
+
+  /** Nation-level needles by PCON24CD prefix, for headlines that name the
+   *  polity rather than a constituency or MP. England maps onto the UK-wide
+   *  institutions since "England" alone is dominated by non-political uses. */
+  private static readonly NATION_NEEDLES: Record<string, string[]> = {
+    S: ['scotland', 'scottish', 'snp', 'holyrood'],
+    W: ['wales', 'welsh', 'senedd', 'plaid cymru'],
+    N: ['northern ireland', 'stormont'],
+    E: ['westminster', 'downing street', 'house of commons'],
+  };
+
+  /**
+   * One alternation regex over town names, matched CASE-SENSITIVELY against
+   * the raw title with word boundaries: "Bath council" is a hit, "taking a
+   * bath" is not. Town names come from the ONS gazetteer, so escaping is
+   * defensive rather than expected.
+   */
+  private static buildTownRegex(towns: ReadonlySet<string>): RegExp | null {
+    if (towns.size === 0) return null;
+    const escaped = [...towns].map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    try {
+      return new RegExp(`\\b(?:${escaped.join('|')})\\b`);
+    } catch {
+      return null;
+    }
+  }
+
+  private scheduleRegionalRailUpdate(): void {
+    if (SITE_VARIANT !== 'politics') return;
+    if (this.regionalRailTimer) clearTimeout(this.regionalRailTimer);
+    this.regionalRailTimer = setTimeout(() => {
+      this.regionalRailTimer = null;
+      this.updateRegionalStoriesRail();
+    }, 350);
+  }
+
+  /** Approximate centroid per constituency, computed once per dataset load —
+   *  only used for the in-viewport test, so ring-average precision is fine. */
+  private getPoliticalCentroids(): NonNullable<DeckGLMap['politicalCentroids']> {
+    if (this.politicalCentroids) return this.politicalCentroids;
+    const centroids: NonNullable<DeckGLMap['politicalCentroids']> = [];
+    for (const feature of this.politicalControlData?.features ?? []) {
+      const geom = feature.geometry;
+      const ring: number[][] | undefined = geom?.type === 'Polygon'
+        ? (geom.coordinates as number[][][])[0]
+        : geom?.type === 'MultiPolygon'
+          ? (geom.coordinates as number[][][][])[0]?.[0]
+          : undefined;
+      if (!ring || ring.length === 0) continue;
+      let lon = 0; let lat = 0;
+      for (const pt of ring) { lon += pt[0] ?? 0; lat += pt[1] ?? 0; }
+      const props = feature.properties ?? {};
+      centroids.push({
+        lon: lon / ring.length,
+        lat: lat / ring.length,
+        name: typeof props.name === 'string' ? props.name : '',
+        mp: typeof props.mp === 'string' ? props.mp : null,
+        code: typeof props.code === 'string' ? props.code : '',
+        towns: Array.isArray(props.towns) ? props.towns.filter((t): t is string => typeof t === 'string') : [],
+      });
+    }
+    this.politicalCentroids = centroids;
+    return centroids;
+  }
+
+  private hideRegionalRail(): void {
+    if (this.regionalRailEl) this.regionalRailEl.style.display = 'none';
+  }
+
+  private updateRegionalStoriesRail(): void {
+    if (SITE_VARIANT !== 'politics' || this.regionalRailDismissed || !this.maplibreMap) return;
+
+    const zoom = this.maplibreMap.getZoom();
+    const bounds = this.maplibreMap.getBounds();
+    const uk = DeckGLMap.UK_BBOX;
+    const overlapsUk = bounds.getWest() < uk.east && bounds.getEast() > uk.west
+      && bounds.getSouth() < uk.north && bounds.getNorth() > uk.south;
+    if (zoom < DeckGLMap.REGIONAL_RAIL_MIN_ZOOM || !overlapsUk) {
+      this.hideRegionalRail();
+      return;
+    }
+
+    // The constituency dataset doubles as the gazetteer; fetch it even while
+    // the choropleth layer itself is toggled off.
+    if (!this.politicalControlData) {
+      this.ensurePoliticalControlData();
+      this.hideRegionalRail();
+      return;
+    }
+
+    const visible = this.getPoliticalCentroids().filter(c =>
+      c.lon >= bounds.getWest() && c.lon <= bounds.getEast()
+      && c.lat >= bounds.getSouth() && c.lat <= bounds.getNorth());
+    if (visible.length === 0) {
+      this.hideRegionalRail();
+      return;
+    }
+
+    // Needles: visible constituency + MP names, plus nation-level terms for
+    // each nation with a constituency in view, plus the towns gazetteer.
+    const needles = new Set<string>();
+    const nations = new Set<string>();
+    const towns = new Set<string>();
+    for (const c of visible) {
+      if (c.name.length > 3) needles.add(c.name.toLowerCase());
+      if (c.mp && c.mp.length > 3) needles.add(c.mp.toLowerCase());
+      for (const town of c.towns) towns.add(town);
+      const prefix = c.code.charAt(0);
+      if (prefix && !nations.has(prefix)) {
+        nations.add(prefix);
+        for (const term of DeckGLMap.NATION_NEEDLES[prefix] ?? []) needles.add(term);
+      }
+    }
+    const needleList = [...needles];
+    const townRegex = DeckGLMap.buildTownRegex(towns);
+
+    const seen = new Set<string>();
+    const matched = this.news.filter((n) => {
+      const title = n.title.toLowerCase();
+      if (!needleList.some(needle => title.includes(needle))
+        && !(townRegex && townRegex.test(n.title))) return false;
+      const key = n.link || `${n.source}|${n.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
+
+    // The rail inherits the active perspective lens: matching-side first,
+    // never filtered (same contract as the news panels).
+    const lens = getPerspectiveLens();
+    const ranked = lens === 'balanced' ? matched : (() => {
+      const hit: NewsItem[] = []; const rest: NewsItem[] = [];
+      for (const item of matched) (lensMatchesBias(lens, getSourceBias(item.source)) ? hit : rest).push(item);
+      return [...hit, ...rest];
+    })();
+    const stories = ranked.slice(0, DeckGLMap.REGIONAL_RAIL_MAX_STORIES);
+
+    if (!this.regionalRailEl) {
+      const rail = document.createElement('div');
+      rail.className = 'regional-stories-rail';
+      rail.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('.regional-rail-close')) {
+          this.regionalRailDismissed = true;
+          this.hideRegionalRail();
+        }
+      });
+      this.container.appendChild(rail);
+      this.regionalRailEl = rail;
+      this.railPerspectiveUnsub = subscribePerspective(() => this.scheduleRegionalRailUpdate());
+    }
+
+    const itemsHtml = stories.length === 0
+      ? '<div class="regional-rail-empty">No mapped headlines name this area yet.</div>'
+      : stories.map((n) => {
+        const bias = getSourceBias(n.source);
+        return `
+          <div class="regional-rail-item">
+            <span class="regional-rail-source"><span class="bias-dot ${bias ? `bias-${bias}` : 'bias-unrated'}"></span>${escapeHtml(n.source)}</span>
+            <a class="regional-rail-link" href="${sanitizeUrl(n.link)}" target="_blank" rel="noopener">${escapeHtml(n.title)}</a>
+          </div>`;
+      }).join('');
+
+    setTrustedHtml(this.regionalRailEl, trustedHtml(`
+      <div class="regional-rail-header">
+        <span class="regional-rail-title">Regional Stories</span>
+        <span class="regional-rail-count">${visible.length} constituencies in view</span>
+        <button class="regional-rail-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="regional-rail-body">${itemsHtml}</div>
+    `, 'regional stories rail (escaped fields only)'));
+    this.regionalRailEl.style.display = '';
+  }
+
+  private createPoliticalControlLayer(): GeoJsonLayer | null {
+    if (!this.politicalControlData) return null;
+    return new GeoJsonLayer({
+      id: 'political-control-layer',
+      data: this.politicalControlData,
+      filled: true,
+      stroked: true,
+      getFillColor: (feature: { properties?: Record<string, unknown> }) => {
+        const party = typeof feature.properties?.party === 'string' ? feature.properties.party : 'Unknown';
+        const apiColor = typeof feature.properties?.partyColor === 'string' ? feature.properties.partyColor : null;
+        return ukPartyRgba(party, apiColor);
+      },
+      // Dark umber hairlines so adjacent same-party constituencies stay legible.
+      getLineColor: [22, 17, 12, 200] as [number, number, number, number],
+      getLineWidth: 1,
+      lineWidthMinPixels: 0.5,
+      pickable: true,
+    });
+  }
+
   private static readonly CII_LEVEL_HEX: Record<string, string> = {
     critical: '#b91c1c', high: '#dc2626', elevated: '#f59e0b', normal: '#eab308', low: '#22c55e',
   };
@@ -5039,6 +5286,34 @@ export class DeckGLMap {
 
     const rawClickLayerId = info.layer?.id || '';
     const layerId = rawClickLayerId.endsWith('-ghost') ? rawClickLayerId.slice(0, -6) : rawClickLayerId;
+
+    // UK constituency: party control + any headlines matching it or its MP
+    if (layerId === 'political-control-layer') {
+      const props = (info.object as { properties?: Record<string, unknown> })?.properties ?? {};
+      const name = typeof props.name === 'string' ? props.name : '';
+      const party = typeof props.party === 'string' ? props.party : 'Unknown';
+      const mp = typeof props.mp === 'string' ? props.mp : null;
+      if (!name) return;
+      this.popup.show({
+        type: 'constituency',
+        data: {
+          code: typeof props.code === 'string' ? props.code : '',
+          name,
+          party,
+          partyAbbr: typeof props.partyAbbr === 'string' ? props.partyAbbr : null,
+          mp,
+          partyHex: ukPartyHex(party, typeof props.partyColor === 'string' ? props.partyColor : null),
+          stories: this.matchConstituencyNews(
+            name,
+            mp,
+            Array.isArray(props.towns) ? (props.towns as unknown[]).filter((t): t is string => typeof t === 'string') : [],
+          ),
+        },
+        x: info.x,
+        y: info.y,
+      });
+      return;
+    }
 
     // Hotspots show popup with related news
     if (layerId === 'hotspots-layer') {
@@ -7155,8 +7430,29 @@ export class DeckGLMap {
     this.render();
   }
 
+  /**
+   * Regional stories for one constituency: headlines already on the map that
+   * name the constituency, its MP (full name — surname alone would
+   * false-positive on common names), or one of its gazetteer towns.
+   */
+  private matchConstituencyNews(constituency: string, mp: string | null, towns: string[] = []): NewsItem[] {
+    const needles = [constituency, mp]
+      .filter((s): s is string => typeof s === 'string' && s.length > 3)
+      .map((s) => s.toLowerCase());
+    const townRegex = DeckGLMap.buildTownRegex(new Set(towns));
+    if (needles.length === 0 && !townRegex) return [];
+    return this.news
+      .filter((n) => {
+        const title = n.title.toLowerCase();
+        return needles.some((needle) => title.includes(needle))
+          || (townRegex !== null && townRegex.test(n.title));
+      })
+      .slice(0, 5);
+  }
+
   public updateHotspotActivity(news: NewsItem[]): void {
     this.news = news; // Store for related news lookup
+    this.scheduleRegionalRailUpdate();
 
     // Update hotspot "breaking" indicators based on recent news
     const breakingKeywords = new Set<string>();
@@ -7995,6 +8291,11 @@ export class DeckGLMap {
     this.destroyed = true;
     this.settleViewportMovement(false);
     this.stopTradeAnimation();
+    if (this.regionalRailTimer) { clearTimeout(this.regionalRailTimer); this.regionalRailTimer = null; }
+    this.railPerspectiveUnsub?.();
+    this.railPerspectiveUnsub = null;
+    this.regionalRailEl?.remove();
+    this.regionalRailEl = null;
     this.activeFlightTrails.clear();
     this.clearTrailsBtn = null;
     this._unsubscribeAuthState?.();

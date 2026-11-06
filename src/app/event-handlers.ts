@@ -8,7 +8,7 @@ import type { UnifiedSettingsConfig } from '@/components/UnifiedSettings';
 import type { AirlineIntelPanel } from '@/components/AirlineIntelPanel';
 import type { CustomWidgetPanel } from '@/components/CustomWidgetPanel';
 import { deleteWidget, getWidget, saveWidget, isProUser, isProTierResolved } from '@/services/widget-store';
-import { hasPremiumAccess } from '@/services/panel-gating';
+import { hasPremiumAccess, isOpenAccessBuild } from '@/services/panel-gating';
 import {
   sanitizeLockedLayers,
   shouldSanitizeLockedLayers,
@@ -341,7 +341,7 @@ export class EventHandlerManager implements AppModule {
     const config = this.ctx.panelSettings[panelId];
     if (!config) return false;
     if (config.enabled) return true;
-    if (!isProUser() && isFreePanelCapCounted(panelId)) {
+    if (!isProUser() && !isOpenAccessBuild() && isFreePanelCapCounted(panelId)) {
       const enabledCount = countFreePanelCapUsage(this.ctx.panelSettings);
       if (enabledCount >= FREE_MAX_PANELS) {
         // Tell the user why nothing happened instead of failing silently.
@@ -1811,7 +1811,7 @@ export class EventHandlerManager implements AppModule {
       getDisabledSources: () => this.ctx.disabledSources,
       toggleSource: (name: string) => {
         const reenabling = this.ctx.disabledSources.has(name);
-        if (reenabling && !isProUser()) {
+        if (reenabling && !isProUser() && !isOpenAccessBuild()) {
           const allSources = this.getAllSourceNames();
           const currentlyEnabled = allSources.filter(n => !this.ctx.disabledSources.has(n)).length;
           if (currentlyEnabled + 1 > FREE_MAX_SOURCES) {
@@ -1829,7 +1829,7 @@ export class EventHandlerManager implements AppModule {
         }
       },
       setSourcesEnabled: (names: string[], enabled: boolean) => {
-        if (enabled && !isProUser()) {
+        if (enabled && !isProUser() && !isOpenAccessBuild()) {
           const allSources = this.getAllSourceNames();
           const currentlyEnabled = allSources.filter(n => !this.ctx.disabledSources.has(n)).length;
           const wouldEnable = names.filter(n => this.ctx.disabledSources.has(n) && allSources.includes(n)).length;

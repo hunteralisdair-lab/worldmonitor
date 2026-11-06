@@ -34,6 +34,7 @@ import {
   countRepresentedSources,
   mergeRotatedNewsItems,
   nextRotationCycle,
+  selectBiasBalancedFeedWindow,
   selectRotatingFeedWindow,
 } from '../src/app/news-feed-rotation.ts';
 import type { NewsItem } from '../src/types/index.ts';
@@ -119,6 +120,65 @@ describe('selectRotatingFeedWindow', () => {
     // A corrupt persisted cycle must not produce `undefined` entries.
     assert.deepEqual(selectRotatingFeedWindow(FEEDS, 3, Number.NaN), ['a', 'b', 'c']);
     assert.deepEqual(selectRotatingFeedWindow(FEEDS, 3, -1), ['h', 'i', 'j']);
+  });
+});
+
+describe('selectBiasBalancedFeedWindow', () => {
+  // Politics preset shape: feeds ordered center-first (the starvation defect),
+  // buckets 0 = left-ish, 1 = center/unrated, 2 = right-ish.
+  const BIASED = [
+    { name: 'bbc', bucket: 1 },
+    { name: 'guardian', bucket: 0 },
+    { name: 'sky', bucket: 1 },
+    { name: 'telegraph', bucket: 2 },
+    { name: 'mail', bucket: 2 },
+    { name: 'statesman', bucket: 0 },
+    { name: 'times', bucket: 2 },
+  ];
+  const bucketOf = (f: { bucket: number }) => f.bucket;
+  const names = (window: Array<{ name: string }>) => window.map(f => f.name);
+
+  it('covers every represented side in a single cycle', () => {
+    const window = selectBiasBalancedFeedWindow(BIASED, 3, 0, bucketOf);
+    const buckets = new Set(window.map(bucketOf));
+    assert.deepEqual([...buckets].sort(), [0, 1, 2], 'one pick per side on a 3-feed budget');
+    assert.equal(window.length, 3);
+  });
+
+  it('rotates within each bucket by cycle so every feed is eventually fetched', () => {
+    const seen = new Set<string>();
+    for (let cycle = 0; cycle < BIASED.length; cycle += 1) {
+      for (const feed of selectBiasBalancedFeedWindow(BIASED, 3, cycle, bucketOf)) {
+        seen.add(feed.name);
+      }
+    }
+    assert.equal(seen.size, BIASED.length, 'all feeds reached across cycles');
+  });
+
+  it('is deterministic and duplicate-free', () => {
+    const a = names(selectBiasBalancedFeedWindow(BIASED, 3, 2, bucketOf));
+    const b = names(selectBiasBalancedFeedWindow(BIASED, 3, 2, bucketOf));
+    assert.deepEqual(a, b);
+    assert.equal(new Set(a).size, a.length);
+  });
+
+  it('spends leftover budget on the remaining buckets when one side is missing', () => {
+    const noRight = BIASED.filter(f => f.bucket !== 2);
+    const window = selectBiasBalancedFeedWindow(noRight, 3, 0, bucketOf);
+    assert.equal(window.length, 3, 'budget still fully spent');
+    assert.equal(new Set(names(window)).size, 3);
+  });
+
+  it('returns everything when the budget covers the whole list', () => {
+    const small = BIASED.slice(0, 3);
+    assert.deepEqual(names(selectBiasBalancedFeedWindow(small, 3, 5, bucketOf)), names(small));
+  });
+
+  it('never exceeds the feed count when the budget is larger than one side', () => {
+    const tiny = [{ name: 'only', bucket: 1 }, { name: 'two', bucket: 1 }];
+    const window = selectBiasBalancedFeedWindow(tiny, 5, 1, bucketOf);
+    assert.equal(window.length, 2);
+    assert.equal(new Set(names(window)).size, 2);
   });
 });
 

@@ -2580,6 +2580,24 @@ export class PanelLayoutManager implements AppModule {
       this.importPanel('climate-news', () => import('@/components/ClimateNewsPanel'), 'ClimateNewsPanel', (ClimateNewsPanel) => new ClimateNewsPanel()),
     );
 
+    // Politics-variant UK widgets (self-driving: fetch on construction and
+    // own their refresh timers, so no App.ts scheduler wiring is needed).
+    this.lazyPanel('westminster', () =>
+      this.importPanel('westminster', () => import('@/components/WestminsterSeatsPanel'), 'WestminsterSeatsPanel', (WestminsterSeatsPanel) => new WestminsterSeatsPanel()),
+    );
+    this.lazyPanel('petitions', () =>
+      this.importPanel('petitions', () => import('@/components/PetitionsPanel'), 'PetitionsPanel', (PetitionsPanel) => new PetitionsPanel()),
+    );
+    this.lazyPanel('commons-votes', () =>
+      this.importPanel('commons-votes', () => import('@/components/CommonsVotesPanel'), 'CommonsVotesPanel', (CommonsVotesPanel) => new CommonsVotesPanel()),
+    );
+    this.lazyPanel('uk-polls', () =>
+      this.importPanel('uk-polls', () => import('@/components/UkPollsPanel'), 'UkPollsPanel', (UkPollsPanel) => new UkPollsPanel()),
+    );
+    this.lazyPanel('parliament-agenda', () =>
+      this.importPanel('parliament-agenda', () => import('@/components/ParliamentAgendaPanel'), 'ParliamentAgendaPanel', (ParliamentAgendaPanel) => new ParliamentAgendaPanel()),
+    );
+
     this.lazyImportedPanel('live-news', () => import('@/components/LiveNewsPanel'), 'LiveNewsPanel', (LiveNewsPanel, module) => {
       const liveNewsModule = module as typeof import('@/components/LiveNewsPanel');
       if (liveNewsModule.getDefaultLiveChannels().length === 0 && liveNewsModule.loadChannelsFromStorage().length === 0) return null;
